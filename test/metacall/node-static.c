@@ -10,6 +10,8 @@
 //     return "node-static";
 // }
 
+#include "libnode.h"
+
 int main() {
-    return load_node_static();
+    return load_node_static(&string_function);
 }

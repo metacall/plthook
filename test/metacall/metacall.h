@@ -9,6 +9,6 @@
 
 EXPORT int load_normal_executable(void);
 EXPORT int load_node_dynamic(void);
-EXPORT int load_node_static(void);
+EXPORT int load_node_static(char *(*string_function)(void));
 
 #endif

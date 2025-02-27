@@ -9,13 +9,16 @@ typedef HMODULE dyn_handle_t;
 #define DYN_EXT "dll"
 #define RTLD_LAZY 0 // Use this as workaround
 #define RTLD_GLOBAL 0
+#define DYN_PRE
 #else
 #include <dlfcn.h>
 typedef void* dyn_handle_t;
 #ifdef __APPLE__
 #define DYN_EXT ".dylib"
+#define DYN_PRE "_" // Use this as workaround
 #else
 #define DYN_EXT ".so"
+#define DYN_PRE
 #endif
 #endif
 

@@ -37,8 +37,10 @@ int load_normal_executable() {
 
     // Get all symbols of libnode (TODO: Here we should list all symbols of each dependency library
     // and store all of them in the hash map, this must be cross-platform)
-    assert(dyn_sym(libnode2, "string_function", (void (**)(void))&string_function) == 0);
-    assert(dyn_sym(libnode2, "string_function2", (void (**)(void))&string_function2) == 0);
+    assert(dyn_sym(libnode2, DYN_PRE "string_function", (void (**)(void))&string_function) == 0);
+    assert(strcmp("libnode2", string_function()) == 0);
+    assert(dyn_sym(libnode2, DYN_PRE "string_function2", (void (**)(void))&string_function2) == 0);
+    assert(strcmp("libnode2", string_function2()) == 0);
 
     // Patch the node_loader
     {
@@ -56,17 +58,17 @@ int load_normal_executable() {
             printf("NORMAL EXECUTABLE enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
             // Compare symbols from node_loader against the available symbols (of libnode, but this will
             // be done for each library dependency of node_loader)
-            if (strcmp("string_function", name) == 0) {
+            if (strcmp(DYN_PRE "string_function", name) == 0) {
                 // Link the node_loader "string_function" to the function pointer string_function of libnode2
-                if (plthook_replace(plthook_node_loader, "string_function", (void*)string_function, (void**)NULL) != 0) {
+                if (plthook_replace(plthook_node_loader, DYN_PRE "string_function", (void*)string_function, (void**)NULL) != 0) {
                     printf("plthook_replace error: %s\n", plthook_error());
                     plthook_close(plthook_node_loader);
                     return -1;
                 }
             }
-            if (strcmp("string_function2", name) == 0) {
+            if (strcmp(DYN_PRE "string_function2", name) == 0) {
                 // Link the node_loader "string_function2" to the function pointer string_function of libnode2
-                if (plthook_replace(plthook_node_loader, "string_function2", (void*)string_function2, (void**)NULL) != 0) {
+                if (plthook_replace(plthook_node_loader, DYN_PRE "string_function2", (void*)string_function2, (void**)NULL) != 0) {
                     printf("plthook_replace error: %s\n", plthook_error());
                     plthook_close(plthook_node_loader);
                     return -1;
@@ -122,10 +124,11 @@ int load_node_dynamic(void) {
 
     // Get all symbols of libnode (TODO: Here we should list all symbols of each dependency library
     // and store all of them in the hash map, this must be cross-platform)
-    assert(dyn_sym(libnode, "string_function", (void (**)(void))&string_function) == 0);
+    assert(dyn_sym(libnode, DYN_PRE "string_function", (void (**)(void))&string_function) == 0);
+    assert(strcmp("node-dynamic", string_function()) == 0);
 
     // We simulate another version of libnode here, it won't have "string_function2" because they have diffent APIs
-    // assert(dyn_sym(libnode, "string_function2", (void (**)(void))&string_function2) == 0);
+    // assert(dyn_sym(libnode, DYN_PRE "string_function2", (void (**)(void))&string_function2) == 0);
 
     // Patch the node_loader
     {
@@ -143,18 +146,18 @@ int load_node_dynamic(void) {
             printf("NODE DYNAMIC enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
             // Compare symbols from node_loader against the available symbols (of libnode, but this will
             // be done for each library dependency of node_loader)
-            if (strcmp("string_function", name) == 0) {
+            if (strcmp(DYN_PRE "string_function", name) == 0) {
                 // Link the node_loader "string_function" to the function pointer string_function of libnode
-                if (plthook_replace(plthook_node_loader, "string_function", (void*)string_function, (void**)NULL) != 0) {
+                if (plthook_replace(plthook_node_loader, DYN_PRE "string_function", (void*)string_function, (void**)NULL) != 0) {
                     printf("plthook_replace error: %s\n", plthook_error());
                     plthook_close(plthook_node_loader);
                     return -1;
                 }
             }
             // We simulate another version of libnode here, it won't have "string_function2" because they have diffent APIs
-            // if (strcmp("string_function2", name) == 0) {
+            // if (strcmp(DYN_PRE "string_function2", name) == 0) {
             //     // Link the node_loader "string_function2" to the function pointer string_function of libnode
-            //     if (plthook_replace(plthook_node_loader, "string_function2", (void*)string_function2, (void**)NULL) != 0) {
+            //     if (plthook_replace(plthook_node_loader, DYN_PRE "string_function2", (void*)string_function2, (void**)NULL) != 0) {
             //         printf("plthook_replace error: %s\n", plthook_error());
             //         plthook_close(plthook_node_loader);
             //         return -1;
@@ -178,7 +181,7 @@ int load_node_dynamic(void) {
     return 0;
 }
 
-int load_node_static(void) {
+int load_node_static(char *(*string_function_static)(void)) {
     plthook_t *plthook_node_loader;
     dyn_handle_t current_process, node_loader;
 
@@ -217,10 +220,13 @@ int load_node_static(void) {
 
     // Get all symbols of current_process (TODO: Here we should list all symbols of each dependency library
     // and store all of them in the hash map, this must be cross-platform)
-    assert(dyn_sym(current_process, "string_function", (void (**)(void))&string_function) == 0);
+    assert(dyn_sym(current_process, DYN_PRE "string_function", (void (**)(void))&string_function) == 0);
+    printf("string_function: %p == %p\n", string_function_static, string_function);
+    assert(string_function_static == string_function);
+    assert(strcmp("node-static", string_function()) == 0);
 
     // We simulate another version of libnode here, it won't have "string_function2" because they have diffent APIs
-    // assert(dyn_sym(current_process, "string_function2", (void (**)(void))&string_function2) == 0);
+    // assert(dyn_sym(current_process, DYN_PRE "string_function2", (void (**)(void))&string_function2) == 0);
 
     // Patch the node_loader
     {
@@ -238,18 +244,18 @@ int load_node_static(void) {
             printf("NODE STATIC enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
             // Compare symbols from node_loader against the available symbols (of current_process, but this will
             // be done for each library dependency of node_loader)
-            if (strcmp("string_function", name) == 0) {
+            if (strcmp(DYN_PRE "string_function", name) == 0) {
                 // Link the node_loader "string_function" to the function pointer string_function of current_process
-                if (plthook_replace(plthook_node_loader, "string_function", (void*)string_function, (void**)NULL) != 0) {
+                if (plthook_replace(plthook_node_loader, DYN_PRE "string_function", (void*)string_function, (void**)NULL) != 0) {
                     printf("plthook_replace error: %s\n", plthook_error());
                     plthook_close(plthook_node_loader);
                     return -1;
                 }
             }
             // We simulate another version of current_process here, it won't have "string_function2" because they have diffent APIs
-            // if (strcmp("string_function2", name) == 0) {
+            // if (strcmp(DYN_PRE "string_function2", name) == 0) {
             //     // Link the node_loader "string_function2" to the function pointer string_function of current_process
-            //     if (plthook_replace(plthook_node_loader, "string_function2", (void*)string_function2, (void**)NULL) != 0) {
+            //     if (plthook_replace(plthook_node_loader, DYN_PRE "string_function2", (void*)string_function2, (void**)NULL) != 0) {
             //         printf("plthook_replace error: %s\n", plthook_error());
             //         plthook_close(plthook_node_loader);
             //         return -1;
