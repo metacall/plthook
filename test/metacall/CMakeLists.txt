@@ -6,10 +6,10 @@ set(CMAKE_C_STANDARD 99)
 # Debug
 set(CMAKE_BUILD_TYPE Debug)
 if(NOT WIN32)
-    # add_compile_options(-fsanitize=address)
-    # add_compile_options(-fsanitize=undefined)
-    # add_link_options(-fsanitize=address)
-    # add_link_options(-fsanitize=undefined)
+    add_compile_options(-fsanitize=address)
+    add_compile_options(-fsanitize=undefined)
+    add_link_options(-fsanitize=address)
+    add_link_options(-fsanitize=undefined)
 endif()
 
 # PLTHook
