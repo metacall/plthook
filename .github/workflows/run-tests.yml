@@ -213,6 +213,7 @@ jobs:
       run: |
         mkdir -p test/metacall/build
         cd test/metacall/build
+        ls -la
         echo "-------------------------------------------------"
         ./normal-program
         echo "-------------------------------------------------"
