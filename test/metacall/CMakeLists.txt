@@ -28,9 +28,12 @@ add_library(metacall SHARED metacall.c ${PLTHOOK_SOURCE})
 target_include_directories(metacall PRIVATE ${PLTHOOK_INCLUDE_DIR})
 target_link_libraries(metacall ${CMAKE_DL_LIBS})
 
+# NodeJS library of NodeJS static
+add_library(libnode-static libnode.c)
+
 # NodeJS static
 add_executable(node-static node-static.c)
-target_link_libraries(node-static metacall)
+target_link_libraries(node-static libnode-static metacall)
 
 # NodeJS library of NodeJS dynamic
 add_library(libnode SHARED libnode.c)

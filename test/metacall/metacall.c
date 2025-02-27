@@ -51,7 +51,6 @@ int load_normal_executable() {
         unsigned int pos = 0;
         const char *name;
         void **addr;
-        int i;
 
         while (plthook_enum(plthook_node_loader, &pos, &name, &addr) == 0) {
             printf("NORMAL EXECUTABLE enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
@@ -139,7 +138,6 @@ int load_node_dynamic(void) {
         unsigned int pos = 0;
         const char *name;
         void **addr;
-        int i;
 
         while (plthook_enum(plthook_node_loader, &pos, &name, &addr) == 0) {
             printf("NODE DYNAMIC enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
@@ -235,7 +233,6 @@ int load_node_static(void) {
         unsigned int pos = 0;
         const char *name;
         void **addr;
-        int i;
 
         while (plthook_enum(plthook_node_loader, &pos, &name, &addr) == 0) {
             printf("NODE STATIC enum symbols node_loader (%d): %s -> %p\n", pos, name, addr);
