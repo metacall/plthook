@@ -200,21 +200,18 @@ jobs:
       matrix:
         os: [macos-13, macos-14, macos-15, ubuntu-22.04, ubuntu-24.04, windows-2019, windows-2022, windows-2025]
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: test
     steps:
     - uses: actions/checkout@v4
     - name: Build Project
       uses: threeal/cmake-action@v2.1.0
       with:
-        source-dir: metacall
-        build-dir: metacall/build
+        source-dir: test/metacall
+        build-dir: test/metacall/build
     - name: Run tests
       shell: bash
       run: |
-        mkdir -p metacall/build
-        cd metacall/build
+        mkdir -p test/metacall/build
+        cd test/metacall/build
         echo "-------------------------------------------------"
         ./normal-program
         echo "-------------------------------------------------"
