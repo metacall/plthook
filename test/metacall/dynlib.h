@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#ifdef _WIN32
+#if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 typedef HMODULE handle_t;
 #define DYN_EXT "dll"
@@ -18,7 +18,7 @@ typedef void* handle_t;
 #endif
 
 static inline int dyn_open(char *lib, int flags, handle_t *handle) {
-#ifdef _WIN32
+#if defined(WIN32) || defined(_WIN32)
     *handle = LoadLibrary(lib);
     if (*handle == NULL) {
         printf("Error: %s\n", GetLastError());
@@ -36,7 +36,7 @@ static inline int dyn_open(char *lib, int flags, handle_t *handle) {
 }
 
 static inline int dyn_sym(handle_t handle, char *sym, void (**fp)(void)) {
-#ifdef _WIN32
+#if defined(WIN32) || defined(_WIN32)
     *fp = (void (*)(void))GetProcAddress(handle, sym);
     if (*fp == NULL) {
         printf("Error: %s\n", GetLastError());
@@ -56,7 +56,7 @@ static inline int dyn_sym(handle_t handle, char *sym, void (**fp)(void)) {
 }
 
 static inline void dyn_close(handle_t handle) {
-#ifdef _WIN32
+#if defined(WIN32) || defined(_WIN32)
     FreeLibrary(handle);
 #else
     dlclose(handle);
@@ -64,7 +64,7 @@ static inline void dyn_close(handle_t handle) {
 }
 
 static inline handle_t dyn_current_process_handle(void) {
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32)
     return GetModuleHandle(NULL);
 #else
     return dlopen(NULL, RTLD_LAZY);
