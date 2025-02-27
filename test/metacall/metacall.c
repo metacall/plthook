@@ -13,7 +13,7 @@ string_function_ptr string_function2 = NULL;
 
 int load_normal_executable() {
     plthook_t *plthook_node_loader;
-    handle_t libnode2, node_loader;
+    dyn_handle_t libnode2, node_loader;
 
     printf("METACALL load from normal executable\n");
 
@@ -93,7 +93,7 @@ int load_normal_executable() {
 
 int load_node_dynamic(void) {
     plthook_t *plthook_node_loader;
-    handle_t libnode, node_loader;
+    dyn_handle_t libnode, node_loader;
 
     printf("METACALL load from node compiled dynamically to libnode\n");
 
@@ -182,7 +182,7 @@ int load_node_dynamic(void) {
 
 int load_node_static(void) {
     plthook_t *plthook_node_loader;
-    handle_t current_process, node_loader;
+    dyn_handle_t current_process, node_loader;
 
     // TODO: In theory we should test linking against libmetacall.a, but I think there won't be
     // difference if we just define the function in the same executable)

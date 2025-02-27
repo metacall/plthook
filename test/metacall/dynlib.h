@@ -5,11 +5,13 @@
 
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
-typedef HMODULE handle_t;
+typedef HMODULE dyn_handle_t;
 #define DYN_EXT "dll"
+#define RTLD_LAZY 0 // Use this as workaround
+#define RTLD_GLOBAL 0
 #else
 #include <dlfcn.h>
-typedef void* handle_t;
+typedef void* dyn_handle_t;
 #ifdef __APPLE__
 #define DYN_EXT ".dylib"
 #else
@@ -17,7 +19,7 @@ typedef void* handle_t;
 #endif
 #endif
 
-static inline int dyn_open(char *lib, int flags, handle_t *handle) {
+static inline int dyn_open(char *lib, int flags, dyn_handle_t *handle) {
 #if defined(WIN32) || defined(_WIN32)
     *handle = LoadLibrary(lib);
     if (*handle == NULL) {
@@ -35,12 +37,12 @@ static inline int dyn_open(char *lib, int flags, handle_t *handle) {
     return 0;
 }
 
-static inline int dyn_sym(handle_t handle, char *sym, void (**fp)(void)) {
+static inline int dyn_sym(dyn_handle_t handle, char *sym, void (**fp)(void)) {
 #if defined(WIN32) || defined(_WIN32)
     *fp = (void (*)(void))GetProcAddress(handle, sym);
     if (*fp == NULL) {
         printf("Error: %s\n", GetLastError());
-        FreeLibrary(hModule);
+        FreeLibrary(handle);
         return 1;
     }
 #else
@@ -55,7 +57,7 @@ static inline int dyn_sym(handle_t handle, char *sym, void (**fp)(void)) {
     return 0;
 }
 
-static inline void dyn_close(handle_t handle) {
+static inline void dyn_close(dyn_handle_t handle) {
 #if defined(WIN32) || defined(_WIN32)
     FreeLibrary(handle);
 #else
@@ -63,7 +65,7 @@ static inline void dyn_close(handle_t handle) {
 #endif
 }
 
-static inline handle_t dyn_current_process_handle(void) {
+static inline dyn_handle_t dyn_current_process_handle(void) {
 #if defined(WIN32) || defined(_WIN32)
     return GetModuleHandle(NULL);
 #else
