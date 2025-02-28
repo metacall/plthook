@@ -12,6 +12,19 @@ if(NOT WIN32)
     add_link_options(-fsanitize=undefined)
 endif()
 
+# Windows output folder
+if(WIN32)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR})
+    endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
+endif()
+
 # Windows exports
 if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -66,7 +79,7 @@ target_link_options(node_loader
 add_library(libnode2 SHARED libnode2.c)
 
 # Additional dlinfo test (unrelated to the PoC)
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
     add_executable(dlinfo-test dlinfo-test.c)
     target_link_libraries(dlinfo-test ${CMAKE_DL_LIBS})
 endif()
