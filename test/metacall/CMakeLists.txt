@@ -12,6 +12,11 @@ if(NOT WIN32)
     add_link_options(-fsanitize=undefined)
 endif()
 
+# Windows exports
+if(WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 # PLTHook
 set(PLTHOOK_DIR "${CMAKE_SOURCE_DIR}/../..")
 set(PLTHOOK_INCLUDE_DIR "${PLTHOOK_DIR}")
@@ -30,21 +35,23 @@ target_link_libraries(metacall ${CMAKE_DL_LIBS})
 
 # NodeJS library of NodeJS static
 add_library(libnode-static libnode.c)
+target_compile_definitions(libnode-static PUBLIC NODE_STATIC=1) # Add definition for compiling as "node-static"
 
 # NodeJS static
 add_executable(node-static node-static.c)
-target_link_libraries(node-static libnode-static metacall)
+target_link_libraries(node-static libnode-static ${CMAKE_DL_LIBS} metacall)
+set_property(TARGET node-static PROPERTY ENABLE_EXPORTS ON) # Required to export the symbols on the executable
 
 # NodeJS library of NodeJS dynamic
 add_library(libnode SHARED libnode.c)
 
 # NodeJS dynamic
 add_executable(node-dynamic node-dynamic.c)
-target_link_libraries(node-dynamic metacall)
+target_link_libraries(node-dynamic ${CMAKE_DL_LIBS} metacall)
 
 # Normal Executable
 add_executable(normal-executable normal-executable.c)
-target_link_libraries(normal-executable metacall)
+target_link_libraries(normal-executable ${CMAKE_DL_LIBS} metacall)
 
 # NodeJS Loader is linked weakly to libnode2
 add_library(node_loader SHARED node_loader.c)
@@ -57,3 +64,9 @@ target_link_options(node_loader
 
 # NodeJS library of NodeJS Loader
 add_library(libnode2 SHARED libnode2.c)
+
+# Additional dlinfo test (unrelated to the PoC)
+if(NOT WIN32)
+    add_executable(dlinfo-test dlinfo-test.c)
+    target_link_libraries(dlinfo-test ${CMAKE_DL_LIBS})
+endif()

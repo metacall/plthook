@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "metacall.h"
 
 // #if defined(WIN32) || defined(_WIN32)
@@ -13,5 +14,6 @@
 #include "libnode.h"
 
 int main() {
+    printf("%s\n", string_function());
     return load_node_static(&string_function);
 }
