@@ -68,11 +68,22 @@ target_link_libraries(normal-executable ${CMAKE_DL_LIBS} metacall)
 
 # NodeJS Loader is linked weakly to libnode2
 add_library(node_loader SHARED node_loader.c)
+target_link_libraries(node_loader
+    PRIVATE
+
+    # TODO: Use this for now meanwhile the /FORCE:UNRESOLVED is reviewed
+    $<$<CXX_COMPILER_ID:MSVC>:libnode2>
+)
 target_link_options(node_loader
     PRIVATE
     # TODO: Add flags for gcc?
     $<$<AND:$<BOOL:${APPLE}>,$<CXX_COMPILER_ID:AppleClang,Clang>>:-Wl,-undefined,dynamic_lookup>
-    $<$<CXX_COMPILER_ID:MSVC>:/FORCE:UNRESOLVED>
+
+    # TODO: This seems not to work because the symbol is not even listed.
+    # It will be interesting to find a way to list unresolved symbols.
+    # Meanwhile we can just link to our libnode and pray the namespaces
+    # won't collide specially with C++ static initializers or constructors.
+    # $<$<CXX_COMPILER_ID:MSVC>:/FORCE:UNRESOLVED>
 )
 
 # NodeJS library of NodeJS Loader
