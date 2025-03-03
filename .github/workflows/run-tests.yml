@@ -215,8 +215,4 @@ jobs:
         cd test/metacall/build
         ls -la
         echo "-------------------------------------------------"
-        ./normal-executable
-        echo "-------------------------------------------------"
-        ./node-dynamic
-        echo "-------------------------------------------------"
-        ./node-static
+        ctest -VV
