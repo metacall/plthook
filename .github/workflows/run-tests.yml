@@ -215,4 +215,4 @@ jobs:
         cd test/metacall/build
         ls -la
         echo "-------------------------------------------------"
-        ctest -VV
+        ctest -VV -C Debug
