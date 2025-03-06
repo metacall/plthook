@@ -173,6 +173,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
         PIMAGE_THUNK_DATA name_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportNameTableRVA);
         PIMAGE_THUNK_DATA addr_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportAddressTableRVA);
+        const char* module_name = (char*)((uintptr_t)hMod + dload->DllNameRVA);
+        int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
 
         while (name_thunk->u1.AddressOfData) {
             if (IMAGE_SNAP_BY_ORDINAL(name_thunk->u1.Ordinal)) {
