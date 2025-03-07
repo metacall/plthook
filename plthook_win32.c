@@ -119,11 +119,9 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook_t *plthook;
     ULONG ulSize;
     IMAGE_IMPORT_DESCRIPTOR *desc_head, *desc;
-    /*
     PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS nt;
     PIMAGE_DELAYLOAD_DESCRIPTOR dload_head, dload;
-    */
     size_t num_entries = 0;
     size_t ordinal_name_buflen = 0;
     size_t idx;
