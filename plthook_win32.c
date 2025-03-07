@@ -122,8 +122,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS nt;
     PIMAGE_DELAYLOAD_DESCRIPTOR dload_head, dload;
-    char module_name[MAX_PATH];
-    DWORD module_name_size;
     size_t num_entries = 0;
     size_t ordinal_name_buflen = 0;
     size_t idx;
@@ -168,7 +166,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     nt = (PIMAGE_NT_HEADERS)((uintptr_t)hMod + dos->e_lfanew);
     dload_head = (PIMAGE_DELAYLOAD_DESCRIPTOR)((uintptr_t)hMod +
         nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress);
-    module_name_size = GetModuleFileName(hMod, module_name, sizeof(module_name));
 
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
         PIMAGE_THUNK_DATA name_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportNameTableRVA);
