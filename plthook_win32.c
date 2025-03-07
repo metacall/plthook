@@ -188,9 +188,12 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
 #endif
                 }
             }
-            num_entries++;
-            name_thunk++;
         */
+            num_entries++;
+            printf("ENTRIES %d\n", num_entries);
+            fflush(stdout);
+
+
             name_thunk++;
             addr_thunk++;
         }
