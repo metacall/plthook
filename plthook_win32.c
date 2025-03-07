@@ -119,7 +119,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook_t *plthook;
     ULONG ulSize;
     IMAGE_IMPORT_DESCRIPTOR *desc_head, *desc;
-    PIMAGE_DOS_HEADER dos;
     PIMAGE_NT_HEADERS nt;
     PIMAGE_DELAYLOAD_DESCRIPTOR dload_head, dload;
     size_t num_entries = 0;
@@ -162,15 +161,14 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     }
 
     /* Calculate size to allocate memory (Delayed Load Import Table) */
-    /*
-    dos = (PIMAGE_DOS_HEADER)hMod;
-    nt = (PIMAGE_NT_HEADERS)((uintptr_t)hMod + dos->e_lfanew);
+    nt = (PIMAGE_NT_HEADERS)((uintptr_t)hMod + ((PIMAGE_DOS_HEADER)hMod)->e_lfanew);
     dload_head = (PIMAGE_DELAYLOAD_DESCRIPTOR)((uintptr_t)hMod +
         nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress);
 
+    /*
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
-        PIMAGE_THUNK_DATA name_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportNameTableRVA);
-        PIMAGE_THUNK_DATA addr_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportAddressTableRVA);
+        IMAGE_THUNK_DATA *name_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportNameTableRVA);
+        IMAGE_THUNK_DATA *addr_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportAddressTableRVA);
         const char* module_name = (char*)((uintptr_t)hMod + dload->DllNameRVA);
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
 
@@ -241,8 +239,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     /* Delayed Load Import Table */
     /*
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
-        PIMAGE_THUNK_DATA name_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportNameTableRVA);
-        PIMAGE_THUNK_DATA addr_thunk = (PIMAGE_THUNK_DATA)((uintptr_t)hMod + dload->ImportAddressTableRVA);
+        PIMAGE_THUNK_DATA *name_thunk = (PIMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportNameTableRVA);
+        PIMAGE_THUNK_DATA *addr_thunk = (PIMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportAddressTableRVA);
         const char* module_name = (char*)((uintptr_t)hMod + dload->DllNameRVA);
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
 
