@@ -190,9 +190,9 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
             }
             num_entries++;
             name_thunk++;
-            addr_thunk++;
         */
             name_thunk++;
+            addr_thunk++;
         }
     }
 
