@@ -121,7 +121,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     IMAGE_IMPORT_DESCRIPTOR *desc_head, *desc;
     PIMAGE_NT_HEADERS nt;
     PIMAGE_DELAYLOAD_DESCRIPTOR dload_head, dload;
-    size_t num_entries = 0;
+    unsigned int num_entries = 0;
     size_t ordinal_name_buflen = 0;
     size_t idx;
     char *ordinal_name_buf;
@@ -171,9 +171,11 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
         const char* module_name = (char*)((uintptr_t)hMod + dload->DllNameRVA);
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
 
-        while (name_thunk->u1.AddressOfData) {
-        /*
+        if (*module_name == '\0') {
+            continue;
+        }
 
+        while (name_thunk->u1.AddressOfData) {
             if (IMAGE_SNAP_BY_ORDINAL(name_thunk->u1.Ordinal)) {
                 int ordinal = IMAGE_ORDINAL(name_thunk->u1.Ordinal);
                 const char *name = NULL;
@@ -188,12 +190,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
 #endif
                 }
             }
-        */
             num_entries++;
-            printf("ENTRIES %d\n", num_entries);
-            fflush(stdout);
-
-
             name_thunk++;
             addr_thunk++;
         }
@@ -242,12 +239,15 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     }
 
     /* Delayed Load Import Table */
-    /*
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
-        PIMAGE_THUNK_DATA *name_thunk = (PIMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportNameTableRVA);
-        PIMAGE_THUNK_DATA *addr_thunk = (PIMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportAddressTableRVA);
+        IMAGE_THUNK_DATA *name_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportNameTableRVA);
+        IMAGE_THUNK_DATA *addr_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportAddressTableRVA);
         const char* module_name = (char*)((uintptr_t)hMod + dload->DllNameRVA);
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
+
+        if (*module_name == '\0') {
+            continue;
+        }
 
         while (name_thunk->u1.AddressOfData) {
             const char *name = NULL;
@@ -272,7 +272,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
             addr_thunk++;
         }
     }
-    */
 
     *plthook_out = plthook;
     return 0;
