@@ -165,7 +165,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     dload_head = (PIMAGE_DELAYLOAD_DESCRIPTOR)((uintptr_t)hMod +
         nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress);
 
-    /*
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
         IMAGE_THUNK_DATA *name_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportNameTableRVA);
         IMAGE_THUNK_DATA *addr_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + dload->ImportAddressTableRVA);
@@ -192,7 +191,6 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
             addr_thunk++;
         }
     }
-    */
 
     plthook = calloc(1, offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries + ordinal_name_buflen);
     if (plthook == NULL) {
