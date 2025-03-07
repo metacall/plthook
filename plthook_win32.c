@@ -173,6 +173,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
 
         while (name_thunk->u1.AddressOfData) {
         /*
+
             if (IMAGE_SNAP_BY_ORDINAL(name_thunk->u1.Ordinal)) {
                 int ordinal = IMAGE_ORDINAL(name_thunk->u1.Ordinal);
                 const char *name = NULL;
@@ -187,10 +188,11 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
 #endif
                 }
             }
-            */
             num_entries++;
             name_thunk++;
             addr_thunk++;
+        */
+            name_thunk++;
         }
     }
 
