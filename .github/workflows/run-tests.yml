@@ -82,10 +82,12 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
-    - name: set OPT_CLFAGS
+    - name: Set OPT_CLFAGS
       run: |
         echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
     - name: arm-linux-gnueabi
+      env:
+        OPT_CFLAGS: "-latomic"
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
     - name: arm-linux-gnueabihf
@@ -103,7 +105,6 @@ jobs:
     - name: riscv64-linux-gnu
       run: |
         make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
-
 
     # - name: set OPT_CLFAGS
     #   run: |
@@ -162,7 +163,7 @@ jobs:
     - name: set OPT_CLFAGS
       run: |
         echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
-    - name: tests
+    - name: Tests
       run: |
         make run_tests
 
@@ -177,9 +178,9 @@ jobs:
         options: [
           { dll: "/LD /MD",     exe: "/MD" },
           { dll: "/LD /MD /O2", exe: "/MD /O2" },
-          { dll: "/LDd /MDd",   exe: "/MDd" }
+          { dll: "/LDd /MDd",   exe: "/MDd" },
+          { dll: "/LDd /MDd /fsanitize=address",   exe: "/MDd /fsanitize=address" }
         ]
-        sanitize: ["", "/fsanitize=address"]
     runs-on: windows-${{ matrix.os }}
     defaults:
       run:
@@ -188,6 +189,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: ilammy/msvc-dev-cmd@v1
-    - name: test
+    - name: Test
       run: |
-        run-test.bat ${{ matrix.os }} ${{ matrix.architecture }} "${{ matrix.options.dll }} ${{ matrix.sanitize }}" "${{ matrix.options.exe }} ${{ matrix.sanitize }}"
+        run-test.bat ${{ matrix.os }} ${{ matrix.architecture }} "${{ matrix.options.dll }}" "${{ matrix.options.exe }}"
