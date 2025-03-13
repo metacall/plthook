@@ -58,9 +58,11 @@ jobs:
       run: |
         make relro_pie_tests_on_valgrind
     - name: uclibc x86_64
+      if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
       run: |
         ./uclibc-test.sh x86_64
     - name: uclibc i686
+      if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
       run: |
         ./uclibc-test.sh i686
 
