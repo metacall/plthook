@@ -27,8 +27,8 @@ jobs:
     name: Tests on Ubuntu (x86_64 and i686)
     if: github.event.inputs.tests_on_ubuntu == 'true' || github.event.inputs.tests_on_ubuntu == ''
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         optimization: ["", "-O3"]
         sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
@@ -68,8 +68,8 @@ jobs:
     name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le and riscv64)
     if: github.event.inputs.tests_on_qemu == 'true' || github.event.inputs.tests_on_qemu == ''
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         optimization: ["", "-O3"]
         sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
@@ -132,8 +132,8 @@ jobs:
     name: Tests on macOS
     if: github.event.inputs.tests_on_macos == 'true' || github.event.inputs.tests_on_macos == ''
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         os: [macos-13, macos-14, macos-15]
         optimization: ["", "-O3"]
         sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
@@ -170,8 +170,8 @@ jobs:
     name: Tests on Windows (x64 and x86)
     if: github.event.inputs.tests_on_windows == 'true' || github.event.inputs.tests_on_windows == ''
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         os: [2019, 2022, 2025]
         architecture: [x86, amd64]
         options: [
