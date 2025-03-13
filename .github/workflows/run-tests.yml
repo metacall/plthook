@@ -93,6 +93,8 @@ jobs:
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
     - name: arm-linux-gnueabihf
+      env:
+        LSAN_OPTIONS: "verbosity=1:log_threads=1"
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
     - name: aarch64-linux-gnu
