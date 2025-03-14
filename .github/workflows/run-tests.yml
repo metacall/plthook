@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         optimization: ["", "-O3"]
-        sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
+        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -73,7 +73,7 @@ jobs:
       fail-fast: false
       matrix:
         optimization: ["", "-O3"]
-        sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
+        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -141,7 +141,7 @@ jobs:
       matrix:
         os: [macos-13, macos-14, macos-15]
         optimization: ["", "-O3"]
-        sanitize: ["", "-fsanitize=address -fsanitize=undefined"]
+        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
