@@ -103,7 +103,7 @@ jobs:
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
     - name: aarch64-linux-gnu
       # TODO: aarch64 fails with optimizations https://github.com/kubo/plthook/issues/51
-      if: ${{ matrix.optimization != '-O3' }}
+      if: ${{ matrix.optimization == '' }}
       run: |
         make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
     - name: powerpc-linux-gnu
