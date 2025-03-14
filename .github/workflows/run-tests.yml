@@ -83,7 +83,7 @@ jobs:
     - name: Install packages
       run: |
         sudo dpkg --add-architecture armhf
-        sudo apt update
+        sudo apt update || true
         sudo apt install -y valgrind:armhf
         sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
     - name: Set OPT_CLFAGS
