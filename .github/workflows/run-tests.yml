@@ -163,10 +163,10 @@ jobs:
         os: [2019, 2022, 2025]
         architecture: [x86, amd64]
         options: [
-          { dll: "/LD /MD",     exe: "/MD" },
+          { dll: "/LD /MD", exe: "/MD" },
           { dll: "/LD /MD /O2", exe: "/MD /O2" },
-          { dll: "/LDd /MDd",   exe: "/MDd" },
-          { dll: "/LDd /MDd /fsanitize=address",   exe: "/MDd /fsanitize=address" }
+          { dll: "/LDd /MDd", exe: "/MDd" },
+          { dll: "/LDd /MDd /Z7 /fsanitize=address", exe: "/MDd /Z7 /fsanitize=address" }
         ]
     runs-on: windows-${{ matrix.os }}
     defaults:
