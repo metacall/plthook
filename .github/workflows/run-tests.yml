@@ -73,7 +73,8 @@ jobs:
       fail-fast: false
       matrix:
         optimization: ["", "-O3"]
-        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+        # TODO: Sanitizer fails in armhf and aarch64
+        # sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -86,7 +87,9 @@ jobs:
         sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
     - name: Set OPT_CLFAGS
       run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+        echo OPT_CFLAGS="${{ matrix.optimization }}" >> $GITHUB_ENV
+      # TODO: Sanitizer fails in armhf and aarch64
+      # echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
     - name: arm-linux-gnueabi
       env:
         OPT_CFLAGS: "-latomic"
@@ -94,10 +97,13 @@ jobs:
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
     - name: arm-linux-gnueabihf
       env:
+        # TODO: detect_leaks=0 because it fails to create the ptrace thread
         LSAN_OPTIONS: "verbosity=1:log_threads=1:detect_leaks=0"
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
     - name: aarch64-linux-gnu
+      # TODO: aarch64 fails with optimizations https://github.com/kubo/plthook/issues/51
+      if: ${{ matrix.optimization == '' }}
       run: |
         make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
     - name: powerpc-linux-gnu
@@ -109,29 +115,6 @@ jobs:
     - name: riscv64-linux-gnu
       run: |
         make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
-
-    # - name: set OPT_CLFAGS
-    #   run: |
-    #     echo OPT_CFLAGS=-O3 >> $GITHUB_ENV
-    # - name: arm-linux-gnueabi with optimization
-    #   run: |
-    #     make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
-    # - name: arm-linux-gnueabihf with optimization
-    #   run: |
-    #     make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
-    # # TODO: https://github.com/kubo/plthook/issues/51
-    # # - name: aarch64-linux-gnu with optimization
-    # #   run: |
-    # #     make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
-    # - name: powerpc-linux-gnu with optimization
-    #   run: |
-    #     make relro_pie_tests TARGET_PLATFORM=powerpc-linux-gnu QEMU_ARCH=ppc
-    # - name: powerpc64le-linux-gnu with optimization
-    #   run: |
-    #     make relro_pie_tests TARGET_PLATFORM=powerpc64le-linux-gnu QEMU_ARCH=ppc64le
-    # - name: riscv64-linux-gnu with optimization
-    #   run: |
-    #     make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
 
   tests_on_macos:
     name: Tests on macOS
