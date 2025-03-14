@@ -84,6 +84,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross
+        sudo apt install -y valgrind:armhf
     - name: Set OPT_CLFAGS
       run: |
         echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
@@ -96,6 +97,7 @@ jobs:
       env:
         LSAN_OPTIONS: "verbosity=1:log_threads=1"
       run: |
+        make relro_pie_tests_on_valgrind TARGET_PLATFORM=arm-linux-gnueabihf
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
     - name: aarch64-linux-gnu
       run: |
