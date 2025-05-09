@@ -8,7 +8,7 @@
 #define LIBTESTAPI __declspec(dllimport)
 #endif
 #else
-#define LIBTESTAPI
+#define LIBTESTAPI __attribute__((visibility("default")))
 #endif
 
 LIBTESTAPI

@@ -67,14 +67,13 @@ jobs:
         ./uclibc-test.sh i686
 
   tests_on_qemu:
-    name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le and riscv64)
+    name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le, riscv64, s390x and loongarch64)
     if: github.event.inputs.tests_on_qemu == 'true' || github.event.inputs.tests_on_qemu == ''
     strategy:
       fail-fast: false
       matrix:
         optimization: ["", "-O2", "-O3"]
-        # TODO: Sanitizer fails in armhf and aarch64
-        # sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -84,12 +83,10 @@ jobs:
     - name: Install packages
       run: |
         sudo apt update
-        sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu gcc-s390x-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross libc6-dev-s390x-cross
+        sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu gcc-s390x-linux-gnu gcc-14-loongarch64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross libc6-dev-s390x-cross libc6-dev-loong64-cross
     - name: Set OPT_CLFAGS
       run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }}" >> $GITHUB_ENV
-      # TODO: Sanitizer fails in armhf and aarch64
-      # echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
     - name: arm-linux-gnueabi
       env:
         OPT_CFLAGS: "-latomic"
@@ -102,8 +99,6 @@ jobs:
       run: |
         make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
     - name: aarch64-linux-gnu
-      # TODO: aarch64 fails with optimizations https://github.com/kubo/plthook/issues/51
-      if: ${{ matrix.optimization == '' }}
       run: |
         make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
     - name: powerpc-linux-gnu
@@ -118,6 +113,9 @@ jobs:
     - name: s390x-linux-gnu
       run: |
         make relro_pie_tests TARGET_PLATFORM=s390x-linux-gnu QEMU_ARCH=s390x
+    - name: loongarch64-linux-gnu
+      run: |
+        make relro_pie_tests TARGET_PLATFORM=loongarch64-linux-gnu QEMU_ARCH=loongarch64 GCC_VERSION=14
 
   tests_on_macos:
     name: Tests on macOS

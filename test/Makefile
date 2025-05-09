@@ -23,7 +23,7 @@ ifeq ($(UNAME_S),Linux)
   # Linux
   TESTS = relro_pie_tests
   ifneq ($(TARGET_PLATFORM),)
-    CC = $(TARGET_PLATFORM)-gcc
+    CC = $(TARGET_PLATFORM)-gcc$(if $(GCC_VERSION),-$(GCC_VERSION))
     KICK_CMD = qemu-$(or $(QEMU_ARCH),$(shell echo $(TARGET_PLATFORM) | sed -e 's/-.*//')) -L /usr/$(TARGET_PLATFORM)
   endif
 endif
@@ -65,8 +65,8 @@ all: libtest.$(SOEXT) testprog$(EXEEXT)
 libtest.$(SOEXT): libtest.c libtest.h
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -DLIBTEST_DLL -o libtest.$(SOEXT) libtest.c -lm $(LDFLAGS)
 
-testprog$(EXEEXT): testprog.c ../$(PLTHOOK_C) libtest.h
-	$(CC) $(CFLAGS_EXE) $(CFLAGS) -o testprog$(EXEEXT) -I.. testprog.c ../$(PLTHOOK_C) -L. -ltest $(LIBS) $(LDFLAGS)
+testprog$(EXEEXT): testprog.c testlazybinding.c ../$(PLTHOOK_C) libtest.h
+	$(CC) $(CFLAGS_EXE) $(CFLAGS) -o testprog$(EXEEXT) -I.. testprog.c testlazybinding.c ../$(PLTHOOK_C) -L. -ltest $(LIBS) $(LDFLAGS)
 
 run_tests: clean libtest.$(SOEXT) testprog$(EXEEXT)
 	LD_LIBRARY_PATH=. $(KICK_CMD) ./testprog$(EXEEXT) open

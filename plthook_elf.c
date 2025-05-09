@@ -113,6 +113,9 @@
 #elif defined __s390x__
 #define R_JUMP_SLOT   R_390_JMP_SLOT
 #define R_GLOBAL_DATA R_390_GLOB_DAT
+#elif defined __loongarch64
+#define R_JUMP_SLOT   R_LARCH_JUMP_SLOT
+#define R_GLOBAL_DATA R_LARCH_64
 #elif 0 /* disabled because not tested */ && (defined __sparc || defined __sparc__)
 #define R_JUMP_SLOT   R_SPARC_JMP_SLOT
 #define R_GLOBAL_DATA R_SPARC_GLOB_DAT

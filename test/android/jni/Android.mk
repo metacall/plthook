@@ -12,7 +12,7 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := testprog
-LOCAL_SRC_FILES := ../../testprog.c ../../../plthook_elf.c
+LOCAL_SRC_FILES := ../../testprog.c ../../testlazybinding.c ../../../plthook_elf.c
 LOCAL_C_INCLUDES := ../.. ../../..
 LOCAL_SHARED_LIBRARIES := libtest
 

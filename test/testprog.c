@@ -32,6 +32,12 @@ enum open_mode {
     OPEN_MODE_BY_ADDRESS,
 };
 
+/*
+https://github.com/metacall/plthook/issues/4
+https://github.com/kubo/plthook/pull/55#issuecomment-2863552101
+*/
+double strtod_lazy_binding(void);
+
 static enum_test_data_t funcs_called_by_libtest[] = {
 #if defined __APPLE__ && defined __LP64__
     {"_strtod", 0},
@@ -335,7 +341,8 @@ int main(int argc, char **argv)
     }
 
     /* Resolve the function addresses by lazy binding. */
-    strtod_cdecl("3.7", NULL);
+    // strtod_cdecl("3.7", NULL);
+    strtod_lazy_binding();
 #if defined _WIN32 || defined __CYGWIN__
     strtod_stdcall("3.7", NULL);
     strtod_fastcall("3.7", NULL);
