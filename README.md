@@ -1,10 +1,8 @@
-PLTHook
-=======
+# PLTHook
 
 [![tests](https://github.com/kubo/plthook/actions/workflows/run-tests.yml/badge.svg)](https://github.com/kubo/plthook/actions/workflows/run-tests.yml)
 
-What is plthook.
-----------------
+## What is plthook.
 
 A utility library to hook library function calls issued by
 specified object files (executable and libraries). This modifies
@@ -68,8 +66,15 @@ Unixes. The fourth argument of `plthook_replace()` isn't available on Unixes
 because it doesn't set the address of the original before the address in the PLT
 entry is resolved.
 
-Changes
--------
+## Changes
+
+**2025-05-14:** Add support again for macOS 10.14 Mojave or before.
+
+**2025-05-09:** Add loongarch64 support. (plthook_elf.c)
+
+**2025-04-15:** Add s390x support. (plthook_elf.c)
+
+**2025-03-07:** Add support for hooking delayed load libraries on Windows.
 
 **2024-09-02:** Fix issues on macOS ([#48])
 
@@ -81,7 +86,7 @@ Changes
 
 **2022-08-12:** Support LC_DYLD_CHAINED_FIXUPS on macOS intel
 
-**2020-03-30:** Check _start also in plthook_open_by_handle() (plthook_elf.c) ([#29])
+**2020-03-30:** Check \_start also in plthook_open_by_handle() (plthook_elf.c) ([#29])
 
 **2020-03-09:** Add support for uClibc. ([#28])
 
@@ -112,8 +117,7 @@ hooking a [prelinked file](https://en.wikipedia.org/wiki/Prelink#Linux) on Linux
 
 **2017-09-18:** Fixed for processes on [valgrind](https://valgrind.org) on Linux.
 
-Usage
------
+## Usage
 
 If you have a library `libfoo.so.1` and want to intercept
 a function call `recv()` without modifying the library,
@@ -127,17 +131,17 @@ in your source tree and add the following code.
 static ssize_t my_recv(int sockfd, void *buf, size_t len, int flags)
 {
     ssize_t rv;
-    
+
     ... do your task: logging, etc. ...
     rv = recv(sockfd, buf, len, flags); /* call real recv(). */
     ... do your task: logging, check received data, etc. ...
     return rv;
 }
-    
+
 int install_hook_function()
 {
     plthook_t *plthook;
-    
+
     if (plthook_open(&plthook, "libfoo.so.1") != 0) {
         printf("plthook_open error: %s\n", plthook_error());
         return -1;
@@ -163,17 +167,17 @@ static ssize_t (*recv_func)(int sockfd, void *buf, size_t len, int flags);
 static ssize_t my_recv(int sockfd, void *buf, size_t len, int flags)
 {
     ssize_t rv;
-    
+
     ... do your task: logging, etc. ...
     rv = (*recv_func)(sockfd, buf, len, flags); /* call real recv(). */
     ... do your task: logging, check received data, etc. ...
     return rv;
 }
-    
+
 int install_hook_function()
 {
     plthook_t *plthook;
-    
+
     if (plthook_open_by_address(&plthook, &recv_func) != 0) {
         printf("plthook_open error: %s\n", plthook_error());
         return -1;
@@ -203,8 +207,7 @@ For example `api-ms-win-shcore-path-l1-1-0.dll:@170`.
 
 [ordinal]: https://msdn.microsoft.com/en-us/library/e7tsx612.aspx
 
-Another Usage
--------------
+## Another Usage
 
 PLTHook provides a function enumerating PLT/IAT entries.
 
@@ -228,25 +231,23 @@ void print_plt_entries(const char *filename)
 }
 ```
 
-Supported Platforms
--------------------
+## Supported Platforms
 
-| Platform | source file | status |
-| -------- | ----------- | ------ |
-| Linux i386 and x86_64 | plthook_elf.c | tested using [github actions] |
-| Linux arm, aarch64, powerpc and powerpc64le | plthook_elf.c | tested on [QEMU][] using [github actions] |
-| Windows 32-bit and x64 (MSVC) | plthook_win32.c | tested using [github actions] |
-| macOS (intel) (*4) | plthook_osx.c | tested using [github actions] |
-| macOS (arm) | plthook_osx.c | tested using [github actions] |
-| Windows 32-bit and x64 (Mingw32 and Cygwin) | plthook_win32.c | perhaps(*2) |
-| Solaris x86_64 | plthook_elf.c | perhaps(*1) |
-| FreeBSD i386 and x86_64 except i386 program on x86_64 OS | plthook_elf.c | perhaps(*1) |
-| Android(*3) | plthook_elf.c | perhaps(*2) |
+| Platform                                                              | source file     | status                                    |
+| --------------------------------------------------------------------- | --------------- | ----------------------------------------- |
+| Linux i386 and x86_64                                                 | plthook_elf.c   | tested using [github actions]             |
+| Linux arm, armhf, arm64, ppc, ppc64le, riscv64, s390x and loongarch64 | plthook_elf.c   | tested on [QEMU][] using [github actions] |
+| Windows 32-bit and x64 (MSVC)                                         | plthook_win32.c | tested using [github actions]             |
+| macOS (intel)                                                         | plthook_osx.c   | tested using [github actions]             |
+| macOS (arm)                                                           | plthook_osx.c   | tested using [github actions]             |
+| Windows 32-bit and x64 (Mingw32 and Cygwin)                           | plthook_win32.c | perhaps(\*2)                              |
+| Solaris x86_64                                                        | plthook_elf.c   | perhaps(\*1)                              |
+| FreeBSD i386 and x86_64 except i386 program on x86_64 OS              | plthook_elf.c   | perhaps(\*1)                              |
+| Android(\*3)                                                          | plthook_elf.c   | perhaps(\*2)                              |
 
 *1 Tested on a local VM before.  
 *2 Tested on travis-ci.org before.  
-*3 Contributed by [Daniel Deptford][].  
-*4 macOS 10.14 Mojave support was dropped on 2022-09-19.  
+\*3 Contributed by [Daniel Deptford][].
 
 [QEMU]: http://www.qemu.org/
 [Daniel Deptford]: https://github.com/redmercury
@@ -262,7 +263,6 @@ Supported Platforms
 [#48]: https://github.com/kubo/plthook/issues/48
 [github actions]: https://github.com/kubo/plthook/actions/workflows/run-tests.yml
 
-License
--------
+## License
 
 2-clause BSD-style license.

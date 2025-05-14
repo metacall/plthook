@@ -40,11 +40,14 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <dlfcn.h>
-#include <errno.h>
+#include <sys/mman.h>
 #include <mach/mach.h>
 #include <mach-o/dyld.h>
 #include <sys/mman.h>
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
+#include <errno.h>
 #include <mach-o/fixup-chains.h>
+#endif
 #include "plthook.h"
 
 #ifdef PLTHOOK_DEBUG
@@ -188,10 +191,13 @@ typedef struct {
 static int plthook_open_real(plthook_t **plthook_out, uint32_t image_idx, const struct mach_header *mh, const char *image_name);
 static unsigned int set_bind_addrs(data_t *data, unsigned int idx, uint32_t bind_off, uint32_t bind_size, char weak);
 static void set_bind_addr(data_t *d, unsigned int *idx, const char *sym_name, int seg_index, int seg_offset, int addend, char weak);
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
 static int read_chained_fixups(data_t *d, const char *image_name);
+static uint8_t *fileoff_to_vmaddr(data_t *data, size_t offset);
 #ifdef PLTHOOK_DEBUG_FIXUPS
 static const char *segment_name_from_addr(data_t *d, size_t addr);
 static const char *section_name_from_addr(data_t *d, size_t addr);
+#endif
 #endif
 
 static int set_mem_prot(plthook_t *plthook);
@@ -202,7 +208,6 @@ static inline uint8_t *fileoff_to_vmaddr_in_segment(data_t *d, int segment_index
     const struct segment_command_64 *seg = d->segments[segment_index];
     return (uint8_t *)(seg->vmaddr - seg->fileoff + d->slide + offset);
 }
-static uint8_t *fileoff_to_vmaddr(data_t *data, size_t offset);
 
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
@@ -535,10 +540,15 @@ static int plthook_open_real(plthook_t **plthook_out, uint32_t image_idx, const 
         return PLTHOOK_INVALID_FILE_FORMAT;
     }
     if (data.chained_fixups != NULL) {
+        #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
         int rv = read_chained_fixups(&data, image_name);
         if (rv != 0) {
             return rv;
         }
+        #else
+        set_errmsg("failed to read chained fixups segment, this is only available after macOS 12 Monterrey: %s", image_name);
+        return PLTHOOK_INTERNAL_ERROR;
+        #endif
     } else {
         nbind = 0;
         nbind = set_bind_addrs(&data, nbind, dyld_info->bind_off, dyld_info->bind_size, 0);
@@ -669,6 +679,7 @@ static void set_bind_addr(data_t *data, unsigned int *idx, const char *sym_name,
     (*idx)++;
 }
 
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
 typedef struct {
     const char *image_name;
     FILE *fp;
@@ -959,6 +970,18 @@ cleanup:
     return rv;
 }
 
+static uint8_t *fileoff_to_vmaddr(data_t *d, size_t offset)
+{
+    int i;
+    for (i = 0; i < d->num_segments; i++) {
+        const struct segment_command_64 *seg = d->segments[i];
+        if (seg->fileoff <= offset && offset < seg->fileoff + seg->filesize) {
+            return fileoff_to_vmaddr_in_segment(d, i, offset);
+        }
+    }
+    return NULL;
+}
+
 #ifdef PLTHOOK_DEBUG_FIXUPS
 static const char *segment_name_from_addr(data_t *d, size_t addr)
 {
@@ -983,6 +1006,7 @@ static const char *section_name_from_addr(data_t *d, size_t addr)
     }
     return "?";
 }
+#endif
 #endif
 
 static int set_mem_prot(plthook_t *plthook)
@@ -1035,18 +1059,6 @@ static int get_mem_prot(plthook_t *plthook, void *addr)
         ++ptr;
     }
     return 0;
-}
-
-static uint8_t *fileoff_to_vmaddr(data_t *d, size_t offset)
-{
-    int i;
-    for (i = 0; i < d->num_segments; i++) {
-        const struct segment_command_64 *seg = d->segments[i];
-        if (seg->fileoff <= offset && offset < seg->fileoff + seg->filesize) {
-            return fileoff_to_vmaddr_in_segment(d, i, offset);
-        }
-    }
-    return NULL;
 }
 
 int plthook_enum(plthook_t *plthook, unsigned int *pos, const char **name_out, void ***addr_out)
