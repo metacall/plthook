@@ -116,6 +116,9 @@
 #elif defined __loongarch64
 #define R_JUMP_SLOT   R_LARCH_JUMP_SLOT
 #define R_GLOBAL_DATA R_LARCH_64
+#elif 0 /* disabled because not working, needs to patch the GOT instead of PLT */ && defined __mips__
+#define R_JUMP_SLOT   R_MIPS_JUMP_SLOT
+#define R_GLOBAL_DATA R_MIPS_GLOB_DAT
 #elif 0 /* disabled because not tested */ && (defined __sparc || defined __sparc__)
 #define R_JUMP_SLOT   R_SPARC_JMP_SLOT
 #define R_GLOBAL_DATA R_SPARC_GLOB_DAT
