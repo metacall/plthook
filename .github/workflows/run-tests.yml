@@ -159,13 +159,13 @@ jobs:
         make run_tests
 
   tests_on_windows:
-    name: Tests on Windows (x64 and x86)
+    name: Tests on Windows (x86 and x64)
     if: github.event.inputs.tests_on_windows == 'true' || github.event.inputs.tests_on_windows == ''
     strategy:
       fail-fast: false
       matrix:
         os: [2019, 2022, 2025]
-        architecture: [x86, amd64]
+        architecture: [x86, x64]
         options: [
           { dll: "/LD /MD", exe: "/MD" },
           { dll: "/LD /MD /O2", exe: "/MD /O2" },
