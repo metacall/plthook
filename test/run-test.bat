@@ -1,4 +1,7 @@
-@rem Optional: accept VS version as argument (e.g., 2019, 2022), or default to latest
+@echo off
+setlocal enabledelayedexpansion
+
+@rem Accept VS version (e.g., 16 for 2019, 17 for 2022)
 set "VS_VERSION=%1"
 set "ARCH=%2"
 
@@ -11,24 +14,33 @@ if not exist "%VSWHERE%" (
     exit /b 1
 )
 
-@rem Use vswhere to find the installation path
+@rem Initialize VSINSTALL to empty
+set "VSINSTALL="
+
+@rem Get Visual Studio install path
 if defined VS_VERSION (
-    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -version %VS_VERSION% -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
+    for /f "usebackq delims=" %%i in (`"%VSWHERE%" -products * -version [%VS_VERSION%.0,%VS_VERSION%.999] -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -nologo`) do (
         set "VSINSTALL=%%i"
     )
 ) else (
-    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
+    for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -nologo`) do (
         set "VSINSTALL=%%i"
     )
 )
 
-@rem Fallback check
+@rem Check if we found anything
 if not defined VSINSTALL (
-    echo ERROR: Could not find a matching Visual Studio installation!
+    echo ERROR: Could not find Visual Studio installation with required components.
     exit /b 1
 )
 
-@rem Call vcvarsall.bat with architecture (e.g., x64, x86, etc.)
+@rem Show what we found
+echo Found Visual Studio at: %VSINSTALL%
+
+@rem Call vcvarsall.bat
 call "%VSINSTALL%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
 
+@rem Build the test
 nmake /f Makefile.win32 check clean DLL_CFLAGS=%3 EXE_CFLAGS=%4
+
+endlocal
