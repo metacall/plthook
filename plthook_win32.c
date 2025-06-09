@@ -379,7 +379,7 @@ const char *plthook_error(void)
     return errbuf;
 }
 
-static void set_errmsg(const char *fmt, ...)
+static void set_errmsg(_Printf_format_string_ const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -387,7 +387,7 @@ static void set_errmsg(const char *fmt, ...)
     va_end(ap);
 }
 
-static void set_errmsg2(const char *fmt, ...)
+static void set_errmsg2(_Printf_format_string_ const char *fmt, ...)
 {
     va_list ap;
     size_t len;
