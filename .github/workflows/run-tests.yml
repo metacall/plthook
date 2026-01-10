@@ -126,7 +126,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, macos-15]
+        os: [macos-14, macos-15, macos-15-intel]
         optimization: ["", "-O3"]
         sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
     runs-on: ${{ matrix.os }}
