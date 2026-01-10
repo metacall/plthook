@@ -10,7 +10,9 @@ jobs:
         include:
         - os: macos-14
           url: https://download.oracle.com/otn_software/mac/instantclient/instantclient-basiclite-macos-arm64.dmg
-        - os: macos-13
+        - os: macos-15
+          url: https://download.oracle.com/otn_software/mac/instantclient/instantclient-basiclite-macos-arm64.dmg
+        - os: macos-15-intel
           url: https://download.oracle.com/otn_software/mac/instantclient/instantclient-basiclite-macos.dmg
     runs-on: ${{ matrix.os }}
     steps:
