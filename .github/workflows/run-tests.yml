@@ -212,4 +212,4 @@ jobs:
         shell: msys2 {0}
         working-directory: test
         run: |
-          make relro_pie_tests
+          make relro_pie_tests TARGET_PLATFORM=Windows
