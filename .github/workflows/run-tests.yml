@@ -206,18 +206,10 @@ jobs:
           update: true
           install: >
             mingw-w64-${{ matrix.env }}-gcc
-            mingw-w64-${{ matrix.env }}-cmake
-            mingw-w64-${{ matrix.env }}-ninja
-
-      - name: Build
-        shell: msys2 {0}
-        run: |
-          mkdir build && cd build
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-          cmake --build .
+            make
 
       - name: Run Tests
         shell: msys2 {0}
-        working-directory: build
+        working-directory: test
         run: |
-          ./testprog
+          make run_tests
