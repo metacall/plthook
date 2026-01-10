@@ -3,6 +3,7 @@
 #
 
 UNAME_S := $(shell uname -s)
+$(info UNAME_S=$(UNAME_S))
 
 CFLAGS_SHARED = -shared -fPIC
 ifeq ($(findstring clang,$(CC)),clang)
@@ -35,8 +36,8 @@ ifeq ($(UNAME_S),FreeBSD)
   SKIP_OPEN_BY_ADDRESS_TEST = 1
 endif
 
-ifeq ($(findstring MINGW32_NT,$(UNAME_S)),MINGW32_NT)
-  # Mingw32
+ifneq (,$(findstring MINGW,$(UNAME_S)))
+  # Mingw
   CFLAGS_SHARED = -shared
   EXEEXT = .exe
   SOEXT = dll
@@ -44,7 +45,7 @@ ifeq ($(findstring MINGW32_NT,$(UNAME_S)),MINGW32_NT)
   PLTHOOK_C = plthook_win32.c
 endif
 
-ifeq ($(findstring CYGWIN_NT,$(UNAME_S)),CYGWIN_NT)
+ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   # Cygwin
   CFLAGS_SHARED = -shared
   EXEEXT = .exe
