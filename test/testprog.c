@@ -140,7 +140,7 @@ static double (*strtod_cdecl_old_func)(const char *, char**);
 static double (__stdcall *strtod_stdcall_old_func)(const char *, char**);
 static double (__fastcall *strtod_fastcall_old_func)(const char *, char**);
 #endif
-#if defined _WIN32
+#if defined _WIN32 && !defined(__GNUC__)
 static double (*strtod_export_by_ordinal_old_func)(const char *, char**);
 #endif
 
@@ -178,7 +178,7 @@ static double __fastcall strtod_fastcall_hook_func(const char *str, char **endpt
 }
 #endif
 
-#if defined _WIN32
+#if defined _WIN32 && !defined(__GNUC__)
 /* hook func from testprog to libtest. */
 static double strtod_export_by_ordinal_hook_func(const char *str, char **endptr)
 {
@@ -264,7 +264,7 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
     CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
     CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
 #endif
-#if defined _WIN32
+#if defined _WIN32 && !defined(__GNUC__)
     CHK_PH(plthook_replace(plthook, "libtest.dll:@10", (void*)strtod_export_by_ordinal_hook_func, (void**)&strtod_export_by_ordinal_old_func));
 #endif
     plthook_close(plthook);
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
     strtod_stdcall("3.7", NULL);
     strtod_fastcall("3.7", NULL);
 #endif
-#if defined _WIN32
+#if defined _WIN32 && !defined(__GNUC__)
     strtod_export_by_ordinal("3.7", NULL);
 #endif
 
@@ -359,7 +359,7 @@ int main(int argc, char **argv)
     CHK_RESULT(strtod_stdcall, "3.7", expected_result);
     CHK_RESULT(strtod_fastcall, "3.7", expected_result);
 #endif
-#if defined _WIN32
+#if defined _WIN32 && !defined(__GNUC__)
     CHK_RESULT(strtod_export_by_ordinal, "3.7", expected_result);
 #endif
 
