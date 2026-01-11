@@ -54,7 +54,8 @@ static enum_test_data_t funcs_called_by_main[] = {
     {"strtod_cdecl", 0},
     {"strtod_stdcall", 0},
     {"strtod_fastcall", 0},
-#ifndef __CYGWIN__
+#if !defined(__CYGWIN__) && !(defined(_WIN32) && defined(__GNUC__))
+    /* Skip ordinal-only export on MinGW */
     {"libtest.dll:@10", 0},
 #endif
 #elif defined _WIN32 && defined __GNUC__
