@@ -43,6 +43,8 @@ static enum_test_data_t funcs_called_by_libtest[] = {
     {"_strtod", 0},
 #elif defined __APPLE__ && !defined __LP64__
     {"_strtod$UNIX2003", 0},
+#elif defined(_WIN32) && defined(__GNUC__)
+    /* MinGW cannot enumerate libc symbols via plthook_enum */
 #else
     {"strtod", 0},
 #endif
