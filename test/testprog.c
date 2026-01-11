@@ -256,16 +256,13 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
     }
     test_plthook_enum(plthook, funcs_called_by_main);
 
-#if !(defined(_WIN32) && defined(__GNUC__))
     {
         union {
             double (*fp)(const char *, char**);
             void *ptr;
-        } cast = { &strtod_hook_func };
-        CHK_PH(plthook_replace(plthook, "strtod", cast.ptr, NULL));
+        } cast = { &strtod_cdecl_hook_func };
+        CHK_PH(plthook_replace(plthook, "strtod_cdecl", cast.ptr, (void**)&strtod_cdecl_old_func));
     }
-#endif
-
 #if defined _WIN32 || defined __CYGWIN__
     CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
     CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
