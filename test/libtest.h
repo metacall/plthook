@@ -21,9 +21,7 @@ double __stdcall strtod_stdcall(const char *str, char **endptr);
 LIBTESTAPI
 double __fastcall strtod_fastcall(const char *str, char **endptr);
 
-#if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__)
 double strtod_export_by_ordinal(const char *str, char **endptr);
-#endif
 #endif
 
 #endif
