@@ -336,7 +336,7 @@ int main(int argc, char **argv)
     }
 
     /* GCC on Windows does not support automatic import by ordinal, so we do it manually */
-#ifdef defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
     HMODULE hModule = LoadLibrary("libtest.dll");
     #define ORDINAL 10
     double (*strtod_export_by_ordinal)(const char *, char **) = (double (*)(const char *, char **))GetProcAddress(hModule, (LPCSTR)MAKELONG(ORDINAL, 0));
