@@ -50,6 +50,7 @@ static enum_test_data_t funcs_called_by_libtest[] = {
 };
 
 static enum_test_data_t funcs_called_by_main[] = {
+// TODO: Review Cygwin
 #if defined _WIN64 || (defined __CYGWIN__ && defined __x86_64__)
     {"strtod_cdecl", 0},
     {"strtod_stdcall", 0},
@@ -136,11 +137,9 @@ error:
 } while (0)
 
 static double (*strtod_cdecl_old_func)(const char *, char**);
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
 static double (__stdcall *strtod_stdcall_old_func)(const char *, char**);
 static double (__fastcall *strtod_fastcall_old_func)(const char *, char**);
-#endif
-#if defined _WIN32
 static double (*strtod_export_by_ordinal_old_func)(const char *, char**);
 #endif
 
@@ -160,7 +159,7 @@ static double strtod_cdecl_hook_func(const char *str, char **endptr)
     return result;
 }
 
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
 /* hook func from testprog to libtest. */
 static double __stdcall strtod_stdcall_hook_func(const char *str, char **endptr)
 {
@@ -176,9 +175,7 @@ static double __fastcall strtod_fastcall_hook_func(const char *str, char **endpt
     set_result(&val_exe2lib, str, result);
     return result;
 }
-#endif
 
-#if defined _WIN32
 /* hook func from testprog to libtest. */
 static double strtod_export_by_ordinal_hook_func(const char *str, char **endptr)
 {
@@ -260,11 +257,9 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
         } cast = { &strtod_cdecl_hook_func };
         CHK_PH(plthook_replace(plthook, "strtod_cdecl", cast.ptr, (void**)&strtod_cdecl_old_func));
     }
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
     CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
     CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
-#endif
-#if defined _WIN32
     CHK_PH(plthook_replace(plthook, "libtest.dll:@10", (void*)strtod_export_by_ordinal_hook_func, (void**)&strtod_export_by_ordinal_old_func));
 #endif
     plthook_close(plthook);
@@ -274,7 +269,7 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
 {
     plthook_t *plthook;
     void *handle;
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
     const char *filename = "libtest.dll";
 #else
     const char *filename = "libtest.so";
@@ -340,14 +335,20 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    /* GCC on Windows does not support automatic import by ordinal, so we do it manually */
+#ifdef defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+    HMODULE hModule = LoadLibrary("libtest.dll");
+    #define ORDINAL 10
+    double (*strtod_export_by_ordinal)(const char *, char **) = (double (*)(const char *, char **))GetProcAddress(hModule, (LPCSTR)MAKELONG(ORDINAL, 0));
+    #undef ORDINAL
+#endif
+
     /* Resolve the function addresses by lazy binding. */
     // strtod_cdecl("3.7", NULL);
     strtod_lazy_binding();
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
     strtod_stdcall("3.7", NULL);
     strtod_fastcall("3.7", NULL);
-#endif
-#if defined _WIN32
     strtod_export_by_ordinal("3.7", NULL);
 #endif
 
@@ -355,11 +356,9 @@ int main(int argc, char **argv)
     hook_function_calls_in_library(open_mode);
 
     CHK_RESULT(strtod_cdecl, "3.7", expected_result);
-#if defined _WIN32 || defined __CYGWIN__
+#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
     CHK_RESULT(strtod_stdcall, "3.7", expected_result);
     CHK_RESULT(strtod_fastcall, "3.7", expected_result);
-#endif
-#if defined _WIN32
     CHK_RESULT(strtod_export_by_ordinal, "3.7", expected_result);
 #endif
 
