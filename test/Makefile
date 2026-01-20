@@ -43,6 +43,7 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
   SOEXT = dll
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
+  DEF_FILE = -Wl,--def-file=libtest.def
 endif
 
 ifneq (,$(findstring CYGWIN,$(UNAME_S)))
@@ -52,6 +53,7 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   SOEXT = dll
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
+  DEF_FILE = -Wl,--def-file=libtest.def
 endif
 
 ifeq ($(UNAME_S),Darwin)
@@ -64,7 +66,7 @@ endif
 all: libtest.$(SOEXT) testprog$(EXEEXT)
 
 libtest.$(SOEXT): libtest.c libtest.h
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -DLIBTEST_DLL -o libtest.$(SOEXT) libtest.c -lm $(LDFLAGS)
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) $(DEF_FILE) -DLIBTEST_DLL -o libtest.$(SOEXT) libtest.c -lm $(LDFLAGS)
 
 testprog$(EXEEXT): testprog.c testlazybinding.c ../$(PLTHOOK_C) libtest.h
 	$(CC) $(CFLAGS_EXE) $(CFLAGS) -o testprog$(EXEEXT) -I.. testprog.c testlazybinding.c ../$(PLTHOOK_C) -L. -ltest $(LIBS) $(LDFLAGS)
