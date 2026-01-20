@@ -43,7 +43,7 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
   SOEXT = dll
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
-  DEF_FILE = -Wl,--def-file=libtest.def
+  DEF_FILE = -Wl,--def=libtest.def
 endif
 
 ifneq (,$(findstring CYGWIN,$(UNAME_S)))
@@ -53,7 +53,7 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   SOEXT = dll
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
-  DEF_FILE = -Wl,--def-file=libtest.def
+  DEF_FILE = -Wl,--def=libtest.def
 endif
 
 ifeq ($(UNAME_S),Darwin)
