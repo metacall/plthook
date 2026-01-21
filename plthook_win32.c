@@ -204,6 +204,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     }
 
     plthook = calloc(1, offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries + ordinal_name_buflen);
+
     if (plthook == NULL) {
         set_errmsg("failed to allocate memory: %" SIZE_T_FMT " bytes", sizeof(plthook_t));
         return PLTHOOK_OUT_OF_MEMORY;
@@ -211,7 +212,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook->hMod = hMod;
     plthook->num_entries = num_entries;
 
-    ordinal_name_buf = (char*)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries;
+    ordinal_name_buf (t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries;
     idx = 0;
 
     /* Import Table */
@@ -292,7 +293,9 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
         }
     }
 
-    DEBUG_MSG("Number of entries: %u (counted) == %u (loaded)\n", num_entries, idx);
+    DEBUG_MSG("Number of entries: %zu (counted) == %zu (loaded)\n", num_entries, idx);
+    DEBUG_MSG("Ordinal buffer lenght: %zu (counted) == %zu (written)\n", ordinal_name_buflen,
+        (uintptr_t)ordinal_name_buf - ((uintptr_t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries));
 
     *plthook_out = plthook;
     return 0;
