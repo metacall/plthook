@@ -3,7 +3,10 @@
 #
 
 UNAME_S := $(shell uname -s)
+
+# Debug
 $(info UNAME_S=$(UNAME_S))
+$(info CC=$(CC))
 
 CFLAGS_SHARED = -shared -fPIC
 ifeq ($(findstring clang,$(CC)),clang)
@@ -56,7 +59,7 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
 endif
 
-ifneq (,$(findstring MSYS,$(UNAME_S)))
+ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Clang (with MSYS2 toolchain)
   ifneq (,$(findstring clang,$(CC)))
     CFLAGS_SHARED = -shared -g -fsanitize=address
