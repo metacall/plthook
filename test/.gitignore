@@ -3,6 +3,7 @@ libtest.dll
 libtest.exp
 libtest.lib
 libtest.so
+libtest.a
 testprog
 testprog.exe
 dummy.c
