@@ -10,7 +10,7 @@
 #include <dlfcn.h>
 #endif
 
-#if defined __UCLIBC__ && !defined RTLD_NOLOAD
+#if defined(__UCLIBC__) && !defined(RTLD_NOLOAD)
 #define RTLD_NOLOAD 0
 #endif
 
@@ -39,10 +39,12 @@ https://github.com/kubo/plthook/pull/55#issuecomment-2863552101
 double strtod_lazy_binding(void);
 
 static enum_test_data_t funcs_called_by_libtest[] = {
-#if defined __APPLE__ && defined __LP64__
+#if defined(__APPLE__)
+#if defined(__LP64__)
     {"_strtod", 0},
-#elif defined __APPLE__ && !defined __LP64__
+#else
     {"_strtod$UNIX2003", 0},
+#endif
 #else
     {"strtod", 0},
 #endif
@@ -55,17 +57,16 @@ static enum_test_data_t funcs_called_by_main[] = {
 #if defined(_WIN64)
     {"strtod_stdcall", 0},
     {"strtod_fastcall", 0},
-#if !defined(__GNUC__)
-    {"libtest.dll:@10", 0},
-#endif
-#elif !defined(_WIN64) && defined(__GNUC__)
+#else
+#if defined(__GNUC__)
     {"strtod_stdcall@8", 0},
     {"@strtod_fastcall@8", 0},
-#elif !defined(_WIN64) && !defined(__GNUC__)
+#else
     {"_strtod_stdcall@8", 0},
     {"@strtod_fastcall@8", 0},
-    {"libtest.dll:@10", 0},
 #endif
+#endif
+    {"libtest.dll:@10", 0},
 #elif defined(__APPLE__)
     {"_strtod_cdecl", 0},
 #else
@@ -81,9 +82,9 @@ typedef struct {
     double result;
 } hooked_val_t;
 
-/* value captured by hook from executable to libtest. */
+/* Value captured by hook from executable to libtest */
 static hooked_val_t val_exe2lib;
-/* value captured by hook from libtest to libc. */
+/* Value captured by hook from libtest to libc */
 static hooked_val_t val_lib2libc;
 
 static void reset_result(void)
@@ -142,7 +143,7 @@ static double (__fastcall *strtod_fastcall_old_func)(const char *, char**);
 static double (*strtod_export_by_ordinal_old_func)(const char *, char**);
 #endif
 
-/* hook func from libtest to libc. */
+/* Hook func from libtest to libc */
 static double strtod_hook_func(const char *str, char **endptr)
 {
     double result = strtod(str, endptr);
@@ -150,7 +151,7 @@ static double strtod_hook_func(const char *str, char **endptr)
     return result;
 }
 
-/* hook func from testprog to libtest. */
+/* Hook func from testprog to libtest */
 static double strtod_cdecl_hook_func(const char *str, char **endptr)
 {
     double result = strtod_cdecl_old_func(str, endptr);
@@ -159,7 +160,7 @@ static double strtod_cdecl_hook_func(const char *str, char **endptr)
 }
 
 #if defined(_WIN32)
-/* hook func from testprog to libtest. */
+/* Hook func from testprog to libtest */
 static double __stdcall strtod_stdcall_hook_func(const char *str, char **endptr)
 {
     double result = strtod_stdcall_old_func(str, endptr);
@@ -167,7 +168,7 @@ static double __stdcall strtod_stdcall_hook_func(const char *str, char **endptr)
     return result;
 }
 
-/* hook func from testprog to libtest. */
+/* Hook func from testprog to libtest */
 static double __fastcall strtod_fastcall_hook_func(const char *str, char **endptr)
 {
     double result = strtod_fastcall_old_func(str, endptr);
@@ -175,7 +176,7 @@ static double __fastcall strtod_fastcall_hook_func(const char *str, char **endpt
     return result;
 }
 
-/* hook func from testprog to libtest. */
+/* Hook func from testprog to libtest */
 static double strtod_export_by_ordinal_hook_func(const char *str, char **endptr)
 {
     double result = strtod_export_by_ordinal_old_func(str, endptr);
@@ -228,7 +229,7 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
         }
         case OPEN_MODE_BY_HANDLE:
         {
-#ifdef WIN32
+#if defined(_WIN32)
             handle = GetModuleHandle(NULL);
 #else
             handle = dlopen(NULL, RTLD_LAZY);
@@ -259,10 +260,7 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
 #if defined(_WIN32)
     CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
     CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
-    /* TODO: Ordinals not working on MingW */
-#if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__)
     CHK_PH(plthook_replace(plthook, "libtest.dll:@10", (void*)strtod_export_by_ordinal_hook_func, (void**)&strtod_export_by_ordinal_old_func));
-#endif
 #endif
     plthook_close(plthook);
 }
@@ -285,7 +283,7 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
         CHK_PH(plthook_open(&plthook, filename));
         break;
     case OPEN_MODE_BY_HANDLE:
-#ifdef WIN32
+#if defined(_WIN32)
         handle = GetModuleHandle(filename);
 #else
         handle = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
@@ -294,7 +292,7 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
         CHK_PH(plthook_open_by_handle(&plthook, handle));
         break;
     case OPEN_MODE_BY_ADDRESS:
-#ifdef WIN32
+#if defined(_WIN32)
         handle = GetModuleHandle(filename);
         assert(handle != NULL);
         CHK_PH(plthook_open_by_address(&plthook, handle));
@@ -337,15 +335,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    /* GCC on Windows does not support automatic import by ordinal, so we do it manually */
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
-    HMODULE hModule = LoadLibrary("libtest.dll");
-    #define ORDINAL 10
-    double (*strtod_export_by_ordinal)(const char *, char **) = (double (*)(const char *, char **))GetProcAddress(hModule, (LPCSTR)MAKELONG(ORDINAL, 0));
-    #undef ORDINAL
-#endif
-
-    /* Resolve the function addresses by lazy binding. */
+    /* Resolve the function addresses by lazy binding */
     // strtod_cdecl("3.7", NULL);
     strtod_lazy_binding();
 #if defined(_WIN32)
@@ -361,11 +351,7 @@ int main(int argc, char **argv)
 #if defined(_WIN32)
     CHK_RESULT(strtod_stdcall, "3.7", expected_result);
     CHK_RESULT(strtod_fastcall, "3.7", expected_result);
-
-    /* TODO: Ordinals not working on MingW */
-#if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__)
     CHK_RESULT(strtod_export_by_ordinal, "3.7", expected_result);
-#endif
 #endif
 
     printf("success\n");
