@@ -125,6 +125,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook_t *plthook;
     ULONG ulSize;
     IMAGE_IMPORT_DESCRIPTOR *desc_head, *desc;
+    PIMAGE_NT_HEADERS nt;
     PIMAGE_DELAYLOAD_DESCRIPTOR dload_head, dload;
     unsigned int num_entries = 0;
     size_t ordinal_name_buflen = 0;
@@ -140,8 +141,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     /* Calculate size to allocate memory (Import Table) */
     for (desc = desc_head; desc->Name != 0; desc++) {
         /* OriginalFirstThunk (ILT) contains the names/hints */
-        IMAGE_THUNK_DATA *ilt_thunk = (IMAGE_THUNK_DATA*)((char*)hMod + desc->OriginalFirstThunk);
-        const char *module_name = (char *)hMod + desc->Name;
+        IMAGE_THUNK_DATA *ilt_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + desc->OriginalFirstThunk);
+        const char *module_name = (uintptr_t)hMod + desc->Name;
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
 
         while (ilt_thunk->u1.AddressOfData != 0) {
@@ -165,7 +166,9 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     }
 
     /* Calculate size to allocate memory (Delayed Load Import Table) */
-    dload_head = (PIMAGE_DELAYLOAD_DESCRIPTOR)ImageDirectoryEntryToData(hMod, TRUE, IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT, &ulSize);
+    nt = (PIMAGE_NT_HEADERS)((uintptr_t)hMod + ((PIMAGE_DOS_HEADER)hMod)->e_lfanew);
+    dload_head = (PIMAGE_DELAYLOAD_DESCRIPTOR)((uintptr_t)hMod +
+        nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress);
 
     for (dload = dload_head; dload->DllNameRVA != 0; dload++) {
         /* Import Name Table (INT) contains function names */
@@ -211,9 +214,9 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     /* Import Table */
     for (desc = desc_head; desc->Name != 0; desc++) {
         /* OriginalFirstThunk (Import Lookup Table) contains the names/hints */
-        IMAGE_THUNK_DATA *ilt_thunk = (IMAGE_THUNK_DATA*)((char*)hMod + desc->OriginalFirstThunk);
+        IMAGE_THUNK_DATA *ilt_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + desc->OriginalFirstThunk);
         /* FirstThunk (Import Address Table) contains the actual function addresses */
-        IMAGE_THUNK_DATA *iat_thunk = (IMAGE_THUNK_DATA*)((char*)hMod + desc->FirstThunk);
+        IMAGE_THUNK_DATA *iat_thunk = (IMAGE_THUNK_DATA*)((uintptr_t)hMod + desc->FirstThunk);
 
         const char *module_name = (char *)hMod + desc->Name;
         int is_winsock2_dll = (stricmp(module_name, "WS2_32.DLL") == 0);
@@ -233,7 +236,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                     ordinal_name_buf += sprintf(ordinal_name_buf, "%s:@%d", module_name, ordinal) + 1;
                 }
             } else {
-                name = (char*)((PIMAGE_IMPORT_BY_NAME)((char*)hMod + ilt_thunk->u1.AddressOfData))->Name;
+                PIMAGE_IMPORT_BY_NAME import_by_name = (PIMAGE_IMPORT_BY_NAME)((uintptr_t)hMod + ilt_thunk->u1.AddressOfData);
+                name = (char*)import_by_name->Name;
             }
             plthook->entries[idx].mod_name = module_name;
             plthook->entries[idx].name = name;
@@ -273,7 +277,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                     ordinal_name_buf += sprintf(ordinal_name_buf, "%s:@%d", module_name, ordinal) + 1;
                 }
             } else {
-                PIMAGE_IMPORT_BY_NAME import_by_name = (PIMAGE_IMPORT_BY_NAME)(hMod + int_thunk->u1.AddressOfData);
+                PIMAGE_IMPORT_BY_NAME import_by_name = (PIMAGE_IMPORT_BY_NAME)((uintptr_t)hMod + int_thunk->u1.AddressOfData);
                 name = (char*)import_by_name->Name;
             }
             plthook->entries[idx].mod_name = module_name;
