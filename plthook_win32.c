@@ -212,7 +212,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook->hMod = hMod;
     plthook->num_entries = num_entries;
 
-    ordinal_name_buf (uintptr_t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries;
+    ordinal_name_buf = (char *)((uintptr_t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries);
     idx = 0;
 
     /* Import Table */
