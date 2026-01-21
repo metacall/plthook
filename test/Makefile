@@ -59,7 +59,8 @@ endif
 ifneq (,$(findstring MSYS,$(UNAME_S)))
   # Clang (with MSYS2 toolchain)
   ifneq (,$(findstring clang,$(CC)))
-    CFLAGS_SHARED = -shared
+    CFLAGS_SHARED = -shared -g -fsanitize=address
+    CFLAGS = $(CFLAGS) -g -fsanitize=address
     EXEEXT = .exe
     SOEXT = dll
     LIBS = -ldbghelp
