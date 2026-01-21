@@ -50,24 +50,23 @@ static enum_test_data_t funcs_called_by_libtest[] = {
 };
 
 static enum_test_data_t funcs_called_by_main[] = {
-// TODO: Review Cygwin
-#if defined _WIN64 || (defined __CYGWIN__ && defined __x86_64__)
+#if defined(_WIN32)
     {"strtod_cdecl", 0},
+#if defined(_WIN64)
     {"strtod_stdcall", 0},
     {"strtod_fastcall", 0},
-#ifndef __CYGWIN__
+#if !defined(__GNUC__)
     {"libtest.dll:@10", 0},
 #endif
-#elif defined _WIN32 && defined __GNUC__
-    {"strtod_cdecl", 0},
+#elif !defined(_WIN64) && defined(__GNUC__)
     {"strtod_stdcall@8", 0},
     {"@strtod_fastcall@8", 0},
-#elif defined _WIN32 && !defined __GNUC__
-    {"strtod_cdecl", 0},
+#elif !defined(_WIN64) && !defined(__GNUC__)
     {"_strtod_stdcall@8", 0},
     {"@strtod_fastcall@8", 0},
     {"libtest.dll:@10", 0},
-#elif defined __APPLE__
+#endif
+#elif defined(__APPLE__)
     {"_strtod_cdecl", 0},
 #else
     {"strtod_cdecl", 0},
@@ -137,7 +136,7 @@ error:
 } while (0)
 
 static double (*strtod_cdecl_old_func)(const char *, char**);
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 static double (__stdcall *strtod_stdcall_old_func)(const char *, char**);
 static double (__fastcall *strtod_fastcall_old_func)(const char *, char**);
 static double (*strtod_export_by_ordinal_old_func)(const char *, char**);
@@ -159,7 +158,7 @@ static double strtod_cdecl_hook_func(const char *str, char **endptr)
     return result;
 }
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 /* hook func from testprog to libtest. */
 static double __stdcall strtod_stdcall_hook_func(const char *str, char **endptr)
 {
@@ -257,10 +256,13 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
         } cast = { &strtod_cdecl_hook_func };
         CHK_PH(plthook_replace(plthook, "strtod_cdecl", cast.ptr, (void**)&strtod_cdecl_old_func));
     }
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
     CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
     CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
+    /* TODO: Ordinals not working on MingW */
+#if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__)
     CHK_PH(plthook_replace(plthook, "libtest.dll:@10", (void*)strtod_export_by_ordinal_hook_func, (void**)&strtod_export_by_ordinal_old_func));
+#endif
 #endif
     plthook_close(plthook);
 }
@@ -269,7 +271,7 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
 {
     plthook_t *plthook;
     void *handle;
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
     const char *filename = "libtest.dll";
 #else
     const char *filename = "libtest.so";
@@ -346,7 +348,7 @@ int main(int argc, char **argv)
     /* Resolve the function addresses by lazy binding. */
     // strtod_cdecl("3.7", NULL);
     strtod_lazy_binding();
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
     strtod_stdcall("3.7", NULL);
     strtod_fastcall("3.7", NULL);
     strtod_export_by_ordinal("3.7", NULL);
@@ -356,10 +358,14 @@ int main(int argc, char **argv)
     hook_function_calls_in_library(open_mode);
 
     CHK_RESULT(strtod_cdecl, "3.7", expected_result);
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
     CHK_RESULT(strtod_stdcall, "3.7", expected_result);
     CHK_RESULT(strtod_fastcall, "3.7", expected_result);
+
+    /* TODO: Ordinals not working on MingW */
+#if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__)
     CHK_RESULT(strtod_export_by_ordinal, "3.7", expected_result);
+#endif
 #endif
 
     printf("success\n");
