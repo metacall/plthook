@@ -42,8 +42,6 @@ endif
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
   CFLAGS_SHARED = -shared
-  # TODO: Remove this
-  CFLAGS = -g -fsanitize=address -DPLTHOOK_DEBUG
   EXEEXT = .exe
   SOEXT = dll
   LIBS = -ldbghelp
