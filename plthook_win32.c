@@ -282,7 +282,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     if (dload_head != NULL) {
         size_t iterator;
 
-        for (iterator = 0; iterator < dload_count && dload->DllNameRVA != 0; iterator++, dload++) {
+        for (iterator = 0, dload = dload_head; iterator < dload_count && dload->DllNameRVA != 0; iterator++, dload++) {
             /* Check if it uses absolute addresses or RVAs */
             BOOL uses_rva = dload->Attributes.AllAttributes & DLATTR_RVA;
             /* Import Name Table (INT) contains function names */
