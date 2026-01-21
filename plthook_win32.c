@@ -343,13 +343,13 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
                 goto found;
             }
         } else {
-            /* import by name */
+            /* Import by name */
 #ifdef _WIN64
             if (strcmp(name, funcname) == 0) {
                 goto found;
             }
 #else
-            /* Function names may be decorated in Windows 32-bit applications. */
+            /* Function names may be decorated in Windows 32-bit applications */
             if (strncmp(name, funcname, funcnamelen) == 0) {
                 if (name[funcnamelen] == '\0' || name[funcnamelen] == '@') {
                     goto found;

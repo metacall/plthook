@@ -194,6 +194,8 @@ static void test_plthook_enum(plthook_t *plthook, enum_test_data_t *test_data)
 
     while (plthook_enum(plthook, &pos, &name, &addr) == 0) {
         for (i = 0; test_data[i].name != NULL; i++) {
+            printf("Test: %s == %s\n", test_data[i].name, name);
+            fflush(stdout);
             if (strcmp(test_data[i].name, name) == 0) {
                 test_data[i].enumerated = 1;
             }
