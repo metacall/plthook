@@ -244,7 +244,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                 name = (char*)import_by_name->Name;
             }
 
-            DEBUG_MSG("Import Symbol    [%zu] [Ordinal: %d]: %s %p %p\n", idx, IMAGE_SNAP_BY_ORDINAL(ilt_thunk->u1.Ordinal), module_name, name, (void**)&iat_thunk->u1.Function);
+            DEBUG_MSG("Import Symbol    [%zu] [Ordinal: %d]: %s %s %p\n", idx, IMAGE_SNAP_BY_ORDINAL(ilt_thunk->u1.Ordinal), module_name, name, (void**)&iat_thunk->u1.Function);
 
             plthook->entries[idx].mod_name = module_name;
             plthook->entries[idx].name = name;
@@ -288,7 +288,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                 name = (char*)import_by_name->Name;
             }
 
-            DEBUG_MSG("DelayLoad Symbol [%zu] [Ordinal: %d]: %s %p %p\n", idx, IMAGE_SNAP_BY_ORDINAL(int_thunk->u1.Ordinal), module_name, name, (void**)&iat_thunk->u1.Function);
+            DEBUG_MSG("DelayLoad Symbol [%zu] [Ordinal: %d]: %s %s %p\n", idx, IMAGE_SNAP_BY_ORDINAL(int_thunk->u1.Ordinal), module_name, name, (void**)&iat_thunk->u1.Function);
 
             plthook->entries[idx].mod_name = module_name;
             plthook->entries[idx].name = name;
