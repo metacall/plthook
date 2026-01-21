@@ -14,7 +14,9 @@
 LIBTESTAPI
 double strtod_cdecl(const char *str, char **endptr);
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32) \
+    || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
 LIBTESTAPI
 double __stdcall strtod_stdcall(const char *str, char **endptr);
 

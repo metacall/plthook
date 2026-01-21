@@ -59,7 +59,8 @@
 #define SIZE_T_FMT "u"
 #endif
 
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
 #define stricmp strcasecmp
 #endif
 
@@ -153,7 +154,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                     name = winsock2_ordinal2name(ordinal);
                 }
                 if (name == NULL) {
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
                     ordinal_name_buflen += snprintf(NULL, 0, "%s:@%d", module_name, ordinal) + 1;
 #else
                     ordinal_name_buflen += _scprintf("%s:@%d", module_name, ordinal) + 1;
@@ -188,7 +190,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
                     name = winsock2_ordinal2name(ordinal);
                 }
                 if (name == NULL) {
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
                     ordinal_name_buflen += snprintf(NULL, 0, "%s:@%d", module_name, ordinal) + 1;
 #else
                     ordinal_name_buflen += _scprintf("%s:@%d", module_name, ordinal) + 1;

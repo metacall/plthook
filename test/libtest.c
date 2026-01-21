@@ -1,4 +1,6 @@
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32) \
+    || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
 /* MingW requires to explicitly import strtod otherwise it gets compiled statically */
 __declspec(dllimport) double strtod(const char *str, char **endptr);
 #else
@@ -12,7 +14,10 @@ double strtod_cdecl(const char *str, char **endptr)
     return strtod(str, endptr);
 }
 
-#if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+
+#if defined(_WIN32) \
+    || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) \
+    || ((defined(__MSYS__) || defined(__MSYS2__)) && defined(__clang__))
 double __stdcall strtod_stdcall(const char *str, char **endptr)
 {
     return strtod(str, endptr);

@@ -56,6 +56,18 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
 endif
 
+ifneq (,$(findstring MSYS,$(UNAME_S)))
+  # Clang (with MSYS2 toolchain)
+  ifneq (,$(findstring clang,$(CC)))
+    CFLAGS_SHARED = -shared
+    EXEEXT = .exe
+    SOEXT = dll
+    LIBS = -ldbghelp
+    PLTHOOK_C = plthook_win32.c
+    DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
+  endif
+endif
+
 ifeq ($(UNAME_S),Darwin)
   # OS X
   CFLAGS_SHARED = -shared -fPIC -Wno-deprecated-declarations
