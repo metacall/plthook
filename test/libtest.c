@@ -1,4 +1,10 @@
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+/* MingW requires to explicitly import strtod otherwise it gets compiled statically */
+__declspec(dllimport) double strtod(const char *str, char **endptr);
+#else
 #include <stdlib.h>
+#endif
+
 #include "libtest.h"
 
 double strtod_cdecl(const char *str, char **endptr)
