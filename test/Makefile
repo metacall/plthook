@@ -44,7 +44,7 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
   # CFLAGS_SHARED = -shared
   # TODO: Remove this
   CFLAGS_SHARED = -shared -g -fsanitize=address
-  CFLAGS = $(CFLAGS) -g -fsanitize=address
+  CFLAGS = -g -fsanitize=address
   EXEEXT = .exe
   SOEXT = dll
   LIBS = -ldbghelp
