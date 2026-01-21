@@ -41,7 +41,10 @@ endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
-  CFLAGS_SHARED = -shared
+  # CFLAGS_SHARED = -shared
+  # TODO: Remove this
+  CFLAGS_SHARED = -shared -g -fsanitize=address
+  CFLAGS = $(CFLAGS) -g -fsanitize=address
   EXEEXT = .exe
   SOEXT = dll
   LIBS = -ldbghelp
@@ -57,19 +60,6 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
   DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
-endif
-
-ifneq (,$(findstring MINGW,$(UNAME_S)))
-  # Clang (with MSYS2 toolchain)
-  ifneq (,$(findstring clang,$(CC)))
-    CFLAGS_SHARED = -shared -g -fsanitize=address
-    CFLAGS = $(CFLAGS) -g -fsanitize=address
-    EXEEXT = .exe
-    SOEXT = dll
-    LIBS = -ldbghelp
-    PLTHOOK_C = plthook_win32.c
-    DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
-  endif
 endif
 
 ifeq ($(UNAME_S),Darwin)
