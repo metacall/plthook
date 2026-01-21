@@ -292,6 +292,8 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
         }
     }
 
+    DEBUG_MSG("Number of entries: %u (counted) == %u (loaded)\n", num_entries, idx);
+
     *plthook_out = plthook;
     return 0;
 }
