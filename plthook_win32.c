@@ -212,7 +212,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
     plthook->hMod = hMod;
     plthook->num_entries = num_entries;
 
-    ordinal_name_buf (t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries;
+    ordinal_name_buf (uintptr_t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries;
     idx = 0;
 
     /* Import Table */
@@ -293,7 +293,7 @@ static int plthook_open_real(plthook_t **plthook_out, HMODULE hMod)
         }
     }
 
-    DEBUG_MSG("Number of entries: %zu (counted) == %zu (loaded)\n", num_entries, idx);
+    DEBUG_MSG("Number of entries: %u (counted) == %zu (loaded)\n", num_entries, idx);
     DEBUG_MSG("Ordinal buffer lenght: %zu (counted) == %zu (written)\n", ordinal_name_buflen,
         (uintptr_t)ordinal_name_buf - ((uintptr_t)plthook + offsetof(plthook_t, entries) + sizeof(import_address_entry_t) * num_entries));
 
