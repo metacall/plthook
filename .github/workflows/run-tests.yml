@@ -195,6 +195,8 @@ jobs:
           - { sys: mingw32, env: i686 }
           - { sys: ucrt64,  env: ucrt-x86_64 }
           - { sys: clang64, env: clang-x86_64 }
+          # TODO: https://github.com/msys2/setup-msys2/blob/6df6372aff24e336858c5d4fb306df20b87ea877/examples/cmake.yml#L22
+          # - { sys: clangarm64, runs-on: windows-11-arm }
 
     steps:
       - uses: actions/checkout@v4
