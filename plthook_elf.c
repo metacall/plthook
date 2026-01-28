@@ -281,6 +281,61 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
     }
     return 0;
 }
+/* Callback to find the main executable on Android.                                                    
+   * Uses /proc/self/exe to get the executable path, then matches it                                     
+   * against dl_iterate_phdr entries. This is the approach used by                                       
+   * Google Sanitizers (ASan) and is portable across different libc                                      
+   * implementations (glibc, bionic, musl).                                                              
+   *                                                                                                     
+   * References:                                                                                         
+   * - https://github.com/google/sanitizers/issues/72                                                    
+   * - https://reviews.llvm.org/D119515                                                                  
+   */                                                                                                    
+  struct dl_iterate_exe_data {                                                                           
+      struct link_map lmap;                                                                              
+      char exe_path[PATH_MAX];                                                                           
+      int found;                                                                                         
+  };                                                                                                     
+                                                                                                         
+  static int dl_iterate_exe_cb(struct dl_phdr_info *info, size_t size, void *cb_data)                    
+  {                                                                                                      
+      struct dl_iterate_exe_data *data = (struct dl_iterate_exe_data*)cb_data;                           
+      Elf_Half idx;                                                                                      
+      const char *name = info->dlpi_name;                                                                
+                                                                                                         
+      /* Skip entries without a name or with empty name */                                               
+      if (name == NULL || name[0] == '\0') {                                                             
+          /* On glibc, main executable has empty name - use exe_path */                                  
+          if (data->exe_path[0] == '\0') {                                                               
+              return 0; /* No exe_path available, skip */                                                
+          }                                                                                              
+          /* This could be the main executable on glibc */                                               
+          name = data->exe_path;                                                                         
+      }                                                                                                  
+                                                                                                         
+      /* Skip vdso and similar special entries */                                                        
+      if (name[0] == '[') {                                                                              
+          return 0;                                                                                      
+      }                                                                                                  
+                                                                                                         
+      /* Check if this entry matches our executable path */                                              
+      if (strcmp(name, data->exe_path) != 0) {                                                           
+          return 0;                                                                                      
+      }                                                                                                  
+                                                                                                         
+      /* Found the main executable! Extract its link_map info */                                         
+      for (idx = 0; idx < info->dlpi_phnum; ++idx) {                                                     
+          const Elf_Phdr *phdr = &info->dlpi_phdr[idx];                                                  
+          if (phdr->p_type == PT_DYNAMIC) {                                                              
+              data->lmap.l_addr = info->dlpi_addr;                                                       
+              data->lmap.l_ld = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);                             
+              data->found = 1;                                                                           
+              return 1; /* Stop iteration */                                                             
+          }                                                                                              
+      }                                                                                                  
+      return 0;                                                                                          
+  }                                                                                                      
+
 #endif
 
 int plthook_open(plthook_t **plthook_out, const char *filename)
@@ -361,8 +416,24 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
 
 static int plthook_open_executable(plthook_t **plthook_out)
 {
-#if defined __ANDROID__ || defined __UCLIBC__
-    return plthook_open_shared_library(plthook_out, NULL);
+#if defined __ANDROID__                                                                                
+      /* On Android, dlsym cannot find symbols like __INIT_ARRAY__, _end, _start                         
+       * in the main executable. Use /proc/self/exe to get the executable path,                          
+       * then find it via dl_iterate_phdr. This approach is used by Google                               
+       * Sanitizers (ASan) and is well-documented. */                                                    
+      struct dl_iterate_exe_data data = {0};                                                             
+      ssize_t len = readlink("/proc/self/exe", data.exe_path, PATH_MAX - 1);                             
+      if (len > 0) {                                                                                     
+          data.exe_path[len] = '\0';                                                                     
+      }                                                                                                  
+      dl_iterate_phdr(dl_iterate_exe_cb, &data);                                                         
+      if (!data.found) {                                                                                 
+          set_errmsg("Could not find main executable");                                                  
+          return PLTHOOK_INTERNAL_ERROR;                                                                 
+      }                                                                                                  
+      return plthook_open_real(plthook_out, &data.lmap);                                                 
+#elif defined __UCLIBC__                                                                               
+      return plthook_open_shared_library(plthook_out, NULL); 
 #elif defined __linux__
     return plthook_open_real(plthook_out, _r_debug.r_map);
 #elif defined __sun
