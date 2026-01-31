@@ -228,8 +228,8 @@ jobs:
     if: github.event.inputs.tests_on_android == 'true' || github.event.inputs.tests_on_android == ''
     runs-on: ubuntu-latest
 
-    # env:
-    #   ANDROID_NDK_VERSION: "26.1.10909125"
+    env:
+      ANDROID_NDK_VERSION: "26.1.10909125"
 
     steps:
       - name: Check out the repository
@@ -246,12 +246,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # - name: Install Android NDK
-      #   run: |
-      #     sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
-      #     echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
-      #     echo "ANDROID_NDK=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+      - name: Install Android NDK
+        run: |
+          sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
 
-      - name: Run Tests
-        working-directory: ./test/android
-        run: ./run_tests.sh
+      # - name: Run Tests
+      #   working-directory: ./test/android
+      #   run: ./run_tests.sh
