@@ -16,9 +16,6 @@ fi
 
 PATH=$ANDROID_HOME/tools/bin:$ANDROID_HOME/ndk-bundle:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
 
-# echo yes | sdkmanager tools ndk-bundle emulator
-# ndk-build
-
 API=30
 TAG=google_apis
 ABIS="arm64-v8a armeabi-v7a x86 x86_64"
