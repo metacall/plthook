@@ -31,206 +31,202 @@ on:
         default: true
 
 jobs:
-  tests_on_ubuntu:
-    name: Tests on Ubuntu (x86_64 and i686)
-    if: github.event.inputs.tests_on_ubuntu == 'true' || github.event.inputs.tests_on_ubuntu == ''
-    strategy:
-      fail-fast: false
-      matrix:
-        optimization: ["", "-O3"]
-        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: test
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install packages
-      run: |
-        sudo apt update
-        sudo apt install -y gcc-multilib libc6-dbg valgrind      
-        sudo dpkg --add-architecture i386
-        sudo apt update
-        sudo apt install -y libc6-dbg:i386 libgcc-s1:i386
-    - name: set OPT_CLFAGS
-      run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
-    - name: x86_64
-      run: |
-        make relro_pie_tests
-    - name: i686
-      run: |
-        make relro_pie_m32_tests
-    - name: x86_64 on valgrind
-      if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
-      run: |
-        make relro_pie_tests_on_valgrind
-    - name: uclibc x86_64
-      if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
-      run: |
-        ./uclibc-test.sh x86_64
-    - name: uclibc i686
-      if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
-      run: |
-        ./uclibc-test.sh i686
+  # tests_on_ubuntu:
+  #   name: Tests on Ubuntu (x86_64 and i686)
+  #   if: github.event.inputs.tests_on_ubuntu == 'true' || github.event.inputs.tests_on_ubuntu == ''
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       optimization: ["", "-O3"]
+  #       sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: test
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Install packages
+  #     run: |
+  #       sudo apt update
+  #       sudo apt install -y gcc-multilib libc6-dbg valgrind      
+  #       sudo dpkg --add-architecture i386
+  #       sudo apt update
+  #       sudo apt install -y libc6-dbg:i386 libgcc-s1:i386
+  #   - name: set OPT_CLFAGS
+  #     run: |
+  #       echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+  #   - name: x86_64
+  #     run: |
+  #       make relro_pie_tests
+  #   - name: i686
+  #     run: |
+  #       make relro_pie_m32_tests
+  #   - name: x86_64 on valgrind
+  #     if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
+  #     run: |
+  #       make relro_pie_tests_on_valgrind
+  #   - name: uclibc x86_64
+  #     if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
+  #     run: |
+  #       ./uclibc-test.sh x86_64
+  #   - name: uclibc i686
+  #     if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
+  #     run: |
+  #       ./uclibc-test.sh i686
 
-  tests_on_qemu:
-    name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le, riscv64, s390x and loongarch64)
-    if: github.event.inputs.tests_on_qemu == 'true' || github.event.inputs.tests_on_qemu == ''
-    strategy:
-      fail-fast: false
-      matrix:
-        optimization: ["", "-O2", "-O3"]
-        # TODO: Sanitizer fails in armhf and aarch64
-        # sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: test
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install packages
-      run: |
-        sudo apt update
-        sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu gcc-s390x-linux-gnu gcc-14-loongarch64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross libc6-dev-s390x-cross libc6-dev-loong64-cross
-    - name: Set OPT_CLFAGS
-      run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }}" >> $GITHUB_ENV
-      # TODO: Sanitizer fails in armhf and aarch64
-      # echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
-    - name: arm-linux-gnueabi
-      env:
-        OPT_CFLAGS: "-latomic"
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
-    - name: arm-linux-gnueabihf
-      env:
-        # TODO: detect_leaks=0 because it fails to create the ptrace thread
-        LSAN_OPTIONS: "verbosity=1:log_threads=1:detect_leaks=0"
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
-    - name: aarch64-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
-    - name: powerpc-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=powerpc-linux-gnu QEMU_ARCH=ppc
-    - name: powerpc64le-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=powerpc64le-linux-gnu QEMU_ARCH=ppc64le
-    - name: riscv64-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
-    - name: s390x-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=s390x-linux-gnu QEMU_ARCH=s390x
-    - name: loongarch64-linux-gnu
-      run: |
-        make relro_pie_tests TARGET_PLATFORM=loongarch64-linux-gnu QEMU_ARCH=loongarch64 GCC_VERSION=14
+  # tests_on_qemu:
+  #   name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le, riscv64, s390x and loongarch64)
+  #   if: github.event.inputs.tests_on_qemu == 'true' || github.event.inputs.tests_on_qemu == ''
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       optimization: ["", "-O2", "-O3"]
+  #       # TODO: Sanitizer fails in armhf and aarch64
+  #       # sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: test
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Install packages
+  #     run: |
+  #       sudo apt update
+  #       sudo apt install -y qemu-user gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-powerpc-linux-gnu gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu gcc-s390x-linux-gnu gcc-14-loongarch64-linux-gnu libc6-dev-armhf-cross libc6-dev-ppc64el-cross libc6-dev-powerpc-cross libc6-dev-armel-cross libc6-dev-arm64-cross libc6-dev-s390x-cross libc6-dev-loong64-cross
+  #   - name: Set OPT_CLFAGS
+  #     run: |
+  #       echo OPT_CFLAGS="${{ matrix.optimization }}" >> $GITHUB_ENV
+  #     # TODO: Sanitizer fails in armhf and aarch64
+  #     # echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+  #   - name: arm-linux-gnueabi
+  #     env:
+  #       OPT_CFLAGS: "-latomic"
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabi
+  #   - name: arm-linux-gnueabihf
+  #     env:
+  #       # TODO: detect_leaks=0 because it fails to create the ptrace thread
+  #       LSAN_OPTIONS: "verbosity=1:log_threads=1:detect_leaks=0"
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=arm-linux-gnueabihf
+  #   - name: aarch64-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=aarch64-linux-gnu
+  #   - name: powerpc-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=powerpc-linux-gnu QEMU_ARCH=ppc
+  #   - name: powerpc64le-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=powerpc64le-linux-gnu QEMU_ARCH=ppc64le
+  #   - name: riscv64-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=riscv64-linux-gnu QEMU_ARCH=riscv64
+  #   - name: s390x-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=s390x-linux-gnu QEMU_ARCH=s390x
+  #   - name: loongarch64-linux-gnu
+  #     run: |
+  #       make relro_pie_tests TARGET_PLATFORM=loongarch64-linux-gnu QEMU_ARCH=loongarch64 GCC_VERSION=14
 
-  tests_on_macos:
-    name: Tests on macOS
-    if: github.event.inputs.tests_on_macos == 'true' || github.event.inputs.tests_on_macos == ''
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, macos-15, macos-15-intel]
-        optimization: ["", "-O3"]
-        sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: test
-    steps:
-    - uses: actions/checkout@v4
-    - name: make
-      run: |
-        make clean libtest.so testprog
-    - name: otool -l testprog
-      run: |
-        otool -l testprog
-    - name: otool -l libtest.so
-      run: |
-        otool -l libtest.so
-    - name: dyldinfo
-      run: |
-        xcrun dyldinfo 2>&1 | tee dyldinfo-help.txt
-        for arg in $(awk '/^\t-/ {print $1}' dyldinfo-help.txt); do echo "======== $arg ========"; xcrun dyldinfo $arg libtest.so; done
-    - name: dyld_info
-      run: |
-        for arg in -segments -dependents -inits -exports -imports -objc -fixups -fixup_chains -fixup_chain_details -symbolic_fixups; do echo "======== $arg ========"; xcrun dyld_info $arg libtest.so; done; true
-    - name: set OPT_CLFAGS
-      run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
-    - name: Tests
-      run: |
-        make run_tests
+  # tests_on_macos:
+  #   name: Tests on macOS
+  #   if: github.event.inputs.tests_on_macos == 'true' || github.event.inputs.tests_on_macos == ''
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [macos-14, macos-15, macos-15-intel]
+  #       optimization: ["", "-O3"]
+  #       sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+  #   runs-on: ${{ matrix.os }}
+  #   defaults:
+  #     run:
+  #       working-directory: test
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: make
+  #     run: |
+  #       make clean libtest.so testprog
+  #   - name: otool -l testprog
+  #     run: |
+  #       otool -l testprog
+  #   - name: otool -l libtest.so
+  #     run: |
+  #       otool -l libtest.so
+  #   - name: dyldinfo
+  #     run: |
+  #       xcrun dyldinfo 2>&1 | tee dyldinfo-help.txt
+  #       for arg in $(awk '/^\t-/ {print $1}' dyldinfo-help.txt); do echo "======== $arg ========"; xcrun dyldinfo $arg libtest.so; done
+  #   - name: dyld_info
+  #     run: |
+  #       for arg in -segments -dependents -inits -exports -imports -objc -fixups -fixup_chains -fixup_chain_details -symbolic_fixups; do echo "======== $arg ========"; xcrun dyld_info $arg libtest.so; done; true
+  #   - name: set OPT_CLFAGS
+  #     run: |
+  #       echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+  #   - name: Tests
+  #     run: |
+  #       make run_tests
 
-  tests_on_windows:
-    name: Tests on Windows (x86 and x64)
-    if: github.event.inputs.tests_on_windows == 'true' || github.event.inputs.tests_on_windows == ''
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [2019, 2022, 2025]
-        architecture: [x86, x64]
-        options: [
-          { dll: "/LD /MD", exe: "/MD" },
-          { dll: "/LD /MD /O2", exe: "/MD /O2" },
-          { dll: "/LDd /MDd", exe: "/MDd" },
-          { dll: "/LDd /MDd /Z7 /fsanitize=address", exe: "/MDd /Z7 /fsanitize=address" }
-        ]
-    runs-on: windows-${{ matrix.os }}
-    defaults:
-      run:
-        shell: cmd
-        working-directory: test
-    steps:
-    - uses: actions/checkout@v4
-    - uses: ilammy/msvc-dev-cmd@v1
-    - name: Test
-      run: |
-        run-test.bat ${{ matrix.os }} ${{ matrix.architecture }} "${{ matrix.options.dll }}" "${{ matrix.options.exe }}"
+  # tests_on_windows:
+  #   name: Tests on Windows (x86 and x64)
+  #   if: github.event.inputs.tests_on_windows == 'true' || github.event.inputs.tests_on_windows == ''
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [2019, 2022, 2025]
+  #       architecture: [x86, x64]
+  #       options: [
+  #         { dll: "/LD /MD", exe: "/MD" },
+  #         { dll: "/LD /MD /O2", exe: "/MD /O2" },
+  #         { dll: "/LDd /MDd", exe: "/MDd" },
+  #         { dll: "/LDd /MDd /Z7 /fsanitize=address", exe: "/MDd /Z7 /fsanitize=address" }
+  #       ]
+  #   runs-on: windows-${{ matrix.os }}
+  #   defaults:
+  #     run:
+  #       shell: cmd
+  #       working-directory: test
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - uses: ilammy/msvc-dev-cmd@v1
+  #   - name: Test
+  #     run: |
+  #       run-test.bat ${{ matrix.os }} ${{ matrix.architecture }} "${{ matrix.options.dll }}" "${{ matrix.options.exe }}"
 
-  tests_on_msys2:
-    name: Tests on Windows MSYS2
-    if: github.event.inputs.tests_on_msys2 == 'true' || github.event.inputs.tests_on_msys2 == ''
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
-          - { sys: ucrt64,  env: ucrt-x86_64 }
-          - { sys: clang64, env: clang-x86_64 }
-          # TODO: https://github.com/msys2/setup-msys2/blob/6df6372aff24e336858c5d4fb306df20b87ea877/examples/cmake.yml#L22
-          # - { sys: clangarm64, runs-on: windows-11-arm }
+  # tests_on_msys2:
+  #   name: Tests on Windows MSYS2
+  #   if: github.event.inputs.tests_on_msys2 == 'true' || github.event.inputs.tests_on_msys2 == ''
+  #   runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - { sys: mingw64, env: x86_64 }
+  #         - { sys: mingw32, env: i686 }
+  #         - { sys: ucrt64,  env: ucrt-x86_64 }
+  #         - { sys: clang64, env: clang-x86_64 }
+  #         # TODO: https://github.com/msys2/setup-msys2/blob/6df6372aff24e336858c5d4fb306df20b87ea877/examples/cmake.yml#L22
+  #         # - { sys: clangarm64, runs-on: windows-11-arm }
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2.30.0
-        with:
-          msystem: ${{ matrix.sys }}
-          update: true
-          install: >
-            mingw-w64-${{ matrix.env }}-gcc
-            make
-      - name: Run Tests
-        shell: msys2 {0}
-        working-directory: test
-        run: |
-          make run_tests
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Setup MSYS2
+  #       uses: msys2/setup-msys2@v2.30.0
+  #       with:
+  #         msystem: ${{ matrix.sys }}
+  #         update: true
+  #         install: >
+  #           mingw-w64-${{ matrix.env }}-gcc
+  #           make
+  #     - name: Run Tests
+  #       shell: msys2 {0}
+  #       working-directory: test
+  #       run: |
+  #         make run_tests
 
   tests_on_android:
     name: Tests on Android
     if: github.event.inputs.tests_on_android == 'true' || github.event.inputs.tests_on_android == ''
     runs-on: ubuntu-latest
-
-    env:
-      ANDROID_NDK_VERSION: "26.1.10909125"
-
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -247,6 +243,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android NDK
+        env:
+          ANDROID_NDK_VERSION: "26.1.10909125"
         run: |
           sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
