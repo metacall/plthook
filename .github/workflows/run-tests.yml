@@ -236,7 +236,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -246,9 +246,11 @@ jobs:
         env:
           ANDROID_NDK_VERSION: "26.1.10909125"
         run: |
-          sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
-          echo "ANDROID_NDK=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+          sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+          NDK_PATH="$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$NDK_PATH" >> $GITHUB_ENV
+          echo "$NDK_PATH" >> $GITHUB_PATH
 
       - name: Enable KVM
         run: |
