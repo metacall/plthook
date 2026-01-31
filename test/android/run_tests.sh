@@ -16,7 +16,7 @@ fi
 
 PATH=$ANDROID_HOME/tools/bin:$ANDROID_HOME/ndk-bundle:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
 
-echo yes | sdkmanager tools ndk-bundle emulator > /dev/null
+echo yes | sdkmanager tools ndk-bundle emulator
 ndk-build
 
 API=30
