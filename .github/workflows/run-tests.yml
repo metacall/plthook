@@ -21,6 +21,14 @@ on:
         description: 'Tests on Windows (true or false)'
         required: true
         default: true
+      tests_on_msys2:
+        description: 'Tests on MSYS2 (true or false)'
+        required: true
+        default: true
+      tests_on_android:
+        description: 'Tests on Android (true or false)'
+        required: true
+        default: true
 
 jobs:
   tests_on_ubuntu:
@@ -186,6 +194,7 @@ jobs:
 
   tests_on_msys2:
     name: Tests on Windows MSYS2
+    if: github.event.inputs.tests_on_msys2 == 'true' || github.event.inputs.tests_on_msys2 == ''
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -213,3 +222,36 @@ jobs:
         working-directory: test
         run: |
           make run_tests
+
+  tests_on_android:
+    name: Tests on Android
+    if: github.event.inputs.tests_on_android == 'true' || github.event.inputs.tests_on_android == ''
+    runs-on: ubuntu-latest
+
+    # env:
+    #   ANDROID_NDK_VERSION: "26.1.10909125"
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # - name: Install Android NDK
+      #   run: |
+      #     sdkmanager --install "ndk;${{ env.ANDROID_NDK_VERSION }}"
+      #     echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+      #     echo "ANDROID_NDK=$ANDROID_HOME/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+
+      - name: Run Tests
+        working-directory: ./test/android
+        run: ./run_tests.sh
