@@ -46,6 +46,9 @@ for ABI in "${ABIS[@]}"; do
       --device "pixel"
   fi
 
+  # List the AVDs
+  avdmanager list avd -c
+
   # Start emulator (ABI-specific tuning)
   EMULATOR_ARGS=(
     -avd "$AVD_NAME"
