@@ -258,6 +258,13 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Fix AVD path mismatch on Ubuntu 24.04
+        run: |
+          # avdmanager stores AVDs in ~/.config/.android/avd/ due to XDG_CONFIG_HOME,
+          # but the emulator looks in ~/.android/avd/. Symlink to fix.
+          # See https://github.com/actions/runner-images/issues/11482
+          ln -sfn "$HOME/.config/.android" "$HOME/.android"
+
       - name: Build native tests with ndk-build
         working-directory: ./test/android
         run: |
