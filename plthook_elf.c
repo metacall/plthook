@@ -283,6 +283,87 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
 }
 #endif
 
+#if defined __ANDROID__
+/* Callback to find the main executable on Android.
+* Uses /proc/self/exe to get the executable path, then matches it
+* against dl_iterate_phdr entries. This is the approach used by
+* Google Sanitizers (ASan) and is portable across different libc
+* implementations (glibc, bionic, musl).
+*/
+struct dl_iterate_exe_data {
+    struct link_map lmap;
+    char exe_path[PATH_MAX];
+    size_t exe_path_len;
+    int found;
+};
+
+static int dl_iterate_exe_check(const char *name, struct dl_iterate_exe_data *data)
+{
+    if (name == NULL || name[0] == '\0') {
+        return 1;
+    }
+
+    if (strncmp(name, data->exe_path, data->exe_path_len) == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int dl_iterate_exe_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_exe_data *data = (struct dl_iterate_exe_data*)cb_data;
+    Elf_Half idx;
+
+    if (!dl_iterate_exe_check(info->dlpi_name, data)) {
+        return 0;
+    }
+
+    /* Found the main executable, extract its link_map info */
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_DYNAMIC) {
+            data->lmap.l_addr = info->dlpi_addr;
+            data->lmap.l_ld = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
+            data->found = 1;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+struct dl_iterate_handle_data {
+    void *target_handle;
+    void *base_addr;
+};
+
+static int dl_iterate_handle_cb(struct dl_phdr_info *info, size_t size, void *data)
+{
+    struct dl_iterate_handle_data *handle_data = (struct dl_iterate_handle_data *)data;
+    void *handle;
+
+    if (info->dlpi_name == NULL || info->dlpi_name[0] == '\0') {
+        return 0;
+    }
+
+    handle = dlopen(info->dlpi_name, RTLD_NOLOAD);
+
+    if (handle == NULL) {
+        return 0;
+    }
+
+    if (handle == handle_data->target_handle) {
+        handle_data->base_addr = (void *)info->dlpi_addr;
+        dlclose(handle);
+        return 1;
+    }
+
+    dlclose(handle);
+    return 0;
+}
+#endif
+
 int plthook_open(plthook_t **plthook_out, const char *filename)
 {
     *plthook_out = NULL;
@@ -295,7 +376,26 @@ int plthook_open(plthook_t **plthook_out, const char *filename)
 
 int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 {
-#if defined __ANDROID__ || defined __UCLIBC__
+#if defined __ANDROID__
+    struct dl_iterate_handle_data handle_data = {0};
+
+    if (hndl == NULL) {
+        set_errmsg("NULL handle");
+        return PLTHOOK_FILE_NOT_FOUND;
+    }
+
+    handle_data.target_handle = hndl;
+    handle_data.base_addr = NULL;
+
+    dl_iterate_phdr(dl_iterate_handle_cb, &handle_data);
+
+    if (handle_data.base_addr == NULL) {
+        set_errmsg("Could not find base address for handle.");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+
+    return plthook_open_by_address(plthook_out, handle_data.base_addr);
+#elif defined __UCLIBC__
     const static char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
@@ -361,7 +461,25 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
 
 static int plthook_open_executable(plthook_t **plthook_out)
 {
-#if defined __ANDROID__ || defined __UCLIBC__
+#if defined __ANDROID__
+    /* On Android, dlsym cannot find symbols like __INIT_ARRAY__, _end, _start
+    * in the main executable. Use /proc/self/exe to get the executable path,
+    * then find it via dl_iterate_phdr. */
+    struct dl_iterate_exe_data data = {0};
+    ssize_t len = readlink("/proc/self/exe", data.exe_path, PATH_MAX - 1);
+    if (len <= 0) {
+        set_errmsg("Could not open executable: %s", strerror(errno));
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    data.exe_path[len] = '\0';
+    data.exe_path_len = (size_t)len;
+    dl_iterate_phdr(dl_iterate_exe_cb, &data);
+    if (!data.found) {
+        set_errmsg("Could not find executable map of %s", data.exe_path);
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    return plthook_open_real(plthook_out, &data.lmap);
+#elif defined __UCLIBC__
     return plthook_open_shared_library(plthook_out, NULL);
 #elif defined __linux__
     return plthook_open_real(plthook_out, _r_debug.r_map);
@@ -660,7 +778,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         return PLTHOOK_INTERNAL_ERROR;
     }
 
-    /* get .dynstr section */
+    /* Get .dynstr section */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_STRTAB);
     if (dyn == NULL) {
         set_errmsg("failed to find DT_STRTAB");
@@ -668,7 +786,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     }
     plthook.dynstr = dyn_addr_base + dyn->d_un.d_ptr;
 
-    /* get .dynstr size */
+    /* Get .dynstr size */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_STRSZ);
     if (dyn == NULL) {
         set_errmsg("failed to find DT_STRSZ");
@@ -676,7 +794,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     }
     plthook.dynstr_size = dyn->d_un.d_val;
 
-    /* get .rela.plt or .rel.plt section */
+    /* Get .rela.plt or .rel.plt section */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_JMPREL);
     if (dyn != NULL) {
         plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + dyn->d_un.d_ptr);
@@ -688,7 +806,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         plthook.rela_plt_cnt = dyn->d_un.d_val / sizeof(Elf_Plt_Rel);
     }
 #ifdef R_GLOBAL_DATA
-    /* get .rela.dyn or .rel.dyn section */
+    /* Get .rela.dyn or .rel.dyn section */
     dyn = find_dyn_by_tag(lmap->l_ld, PLT_DT_REL);
     if (dyn != NULL) {
         size_t total_size, elem_size;
