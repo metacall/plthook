@@ -349,7 +349,7 @@ static int dl_iterate_handle_cb(struct dl_phdr_info *info, size_t size, void *da
 
     handle = dlopen(info->dlpi_name, RTLD_NOLOAD);
 
-    if (hadle == NULL) {
+    if (handle == NULL) {
         return 0;
     }
 
@@ -387,7 +387,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     handle_data.target_handle = hndl;
     handle_data.base_addr = NULL;
 
-    dl_iterate_phdr(find_callback, &handle_data);
+    dl_iterate_phdr(dl_iterate_handle_cb, &handle_data);
 
     if (handle_data.base_addr == NULL) {
         set_errmsg("Could not find base address for handle.");
