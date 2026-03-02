@@ -340,7 +340,7 @@ struct dl_iterate_handle_data {
 
 static int dl_iterate_handle_cb(struct dl_phdr_info *info, size_t size, void *data)
 {
-    struct dl_iterate_handle_data *handle_data = (struct find_data *)data;
+    struct dl_iterate_handle_data *handle_data = (struct dl_iterate_handle_data *)data;
     void *handle;
 
     if (info->dlpi_name == NULL || info->dlpi_name[0] == '\0') {
