@@ -332,6 +332,36 @@ static int dl_iterate_exe_cb(struct dl_phdr_info *info, size_t size, void *cb_da
 
     return 0;
 }
+
+struct dl_iterate_handle_data {
+    void *target_handle;
+    void *base_addr;
+};
+
+static int dl_iterate_handle_cb(struct dl_phdr_info *info, size_t size, void *data)
+{
+    struct dl_iterate_handle_data *handle_data = (struct find_data *)data;
+    void *handle;
+
+    if (info->dlpi_name == NULL || info->dlpi_name[0] == '\0') {
+        return 0;
+    }
+
+    handle = dlopen(info->dlpi_name, RTLD_NOLOAD);
+
+    if (hadle == NULL) {
+        return 0;
+    }
+
+    if (handle == handle_data->target_handle) {
+        handle_data->base_addr = (void *)info->dlpi_addr;
+        dlclose(handle);
+        return 1;
+    }
+
+    dlclose(handle);
+    return 0;
+}
 #endif
 
 int plthook_open(plthook_t **plthook_out, const char *filename)
@@ -346,7 +376,26 @@ int plthook_open(plthook_t **plthook_out, const char *filename)
 
 int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 {
-#if defined __ANDROID__ || defined __UCLIBC__
+#if defined __ANDROID__
+    struct dl_iterate_handle_data handle_data = {0};
+
+    if (hndl == NULL) {
+        set_errmsg("NULL handle");
+        return PLTHOOK_FILE_NOT_FOUND;
+    }
+
+    handle_data.target_handle = hndl;
+    handle_data.base_addr = NULL;
+
+    dl_iterate_phdr(find_callback, &handle_data);
+
+    if (handle_data.base_addr == NULL) {
+        set_errmsg("Could not find base address for handle.");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+
+    return plthook_open_by_address(plthook_out, handle_data.base_addr);
+#elif defined __UCLIBC__
     const static char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
