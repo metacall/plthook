@@ -29,6 +29,10 @@ on:
         description: 'Tests on Android (true or false)'
         required: true
         default: true
+      tests_on_freebsd:
+        description: 'Tests on FreeBSD (true or false)'
+        required: true
+        default: true
 
 jobs:
   tests_on_ubuntu:
@@ -271,3 +275,25 @@ jobs:
           arch: x86_64
           emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim
           script: ./test/android/run_tests.sh
+          
+  tests_on_freebsd:
+    name: Tests on FreeBSD
+    if: github.event.inputs.tests_on_freebsd == 'true' || github.event.inputs.tests_on_freebsd == ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test on freebsd
+        uses: cross-platform-actions/action@v0.32.0
+        with:
+          operating_system: freebsd
+          version: '15.0'
+          run: |
+            ls
+            sudo pkg install -y gmake
+            cd test && gmake relro_pie_tests
+            uname -a
+            echo $SHELL
+            pwd
+            ls -lah
+            whoami
+            env | sort

@@ -250,7 +250,7 @@ static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
-#if defined __ANDROID__ || defined __UCLIBC__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__
 struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
@@ -274,7 +274,12 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         if (phdr->p_type == PT_DYNAMIC) {
+            #if __FreeBSD__ >= 13
             data->lmap.l_addr = info->dlpi_addr;
+            data->lmap.l_base = (caddr_t)info->dlpi_addr;
+            #else
+            data->lmap.l_addr = info->dlpi_addr;
+            #endif
             data->lmap.l_ld = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
             return 1;
         }
@@ -432,9 +437,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
 int plthook_open_by_address(plthook_t **plthook_out, void *address)
 {
-#if defined __FreeBSD__
-    return PLTHOOK_NOT_IMPLEMENTED;
-#elif defined __ANDROID__ || defined __UCLIBC__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__
     struct dl_iterate_data data = {0,};
     data.addr = address;
     dl_iterate_phdr(dl_iterate_cb, &data);
