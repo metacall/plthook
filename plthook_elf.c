@@ -275,7 +275,7 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         if (phdr->p_type == PT_DYNAMIC) {
             #if __FreeBSD__ >= 13
-            data->lmap.l_addr = info->dlpi_addr;
+            data->lmap.l_addr = (caddr_t)info->dlpi_addr;
             data->lmap.l_base = (caddr_t)info->dlpi_addr;
             #else
             data->lmap.l_addr = info->dlpi_addr;
