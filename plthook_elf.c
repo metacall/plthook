@@ -260,7 +260,8 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
-
+    size_t real_base;
+    Elf_Dyn *dynamic;
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         char* base = (char*)info->dlpi_addr + phdr->p_vaddr;
@@ -271,8 +272,9 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
     if (idx == info->dlpi_phnum) {
         return 0;
     }
-    Elf_Addr real_base = info->dlpi_addr;
-    Elf_Dyn *dynamic = NULL;
+    real_base = info->dlpi_addr;
+    dynamic=NULL;
+    
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
 
