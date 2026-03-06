@@ -29,8 +29,8 @@ on:
         description: 'Tests on Android (true or false)'
         required: true
         default: true
-      tests_on_freebsd:
-        description: 'Tests on FreeBSD (true or false)'
+      tests_on_bsd:
+        description: 'Tests on BSD (FreeBSD and NetBSD)'
         required: true
         default: true
 
@@ -276,17 +276,32 @@ jobs:
           emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim
           script: ./test/android/run_tests.sh
 
-  tests_on_freebsd:
-    name: Tests on FreeBSD
-    if: github.event.inputs.tests_on_freebsd == 'true' || github.event.inputs.tests_on_freebsd == ''
+  tests_on_bsd:
+    name: Tests on BSD
+    if: github.event.inputs.tests_on_bsd == 'true' || github.event.inputs.tests_on_bsd == ''
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - { name: freebsd, version: '15.0' }
+          - { name: netbsd,  version: '10.1' }
+
     steps:
       - uses: actions/checkout@v4
-      - name: Test on freebsd
+
+      - name: Test on BSD
         uses: cross-platform-actions/action@v0.32.0
         with:
-          operating_system: freebsd
-          version: '15.0'
+          operating_system: ${{ matrix.os.name }}
+          version: ${{ matrix.os.version }}
           run: |
-            sudo pkg install -y gmake
+            OS=$(uname -s)
+
+            if [ "$OS" = "FreeBSD" ]; then
+              sudo pkg install -y gmake
+            elif [ "$OS" = "NetBSD" ]; then
+              sudo pkgin -y install gmake
+            fi
+
             cd test && gmake relro_pie_tests

@@ -38,6 +38,12 @@ ifeq ($(UNAME_S),FreeBSD)
   LIBS = -lm -lutil
 endif
 
+ifeq ($(UNAME_S),NetBSD)
+  # NetBSD
+  TESTS = relro_pie_tests
+  LIBS = -lm -lutil
+endif
+
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
   CFLAGS_SHARED = -shared
