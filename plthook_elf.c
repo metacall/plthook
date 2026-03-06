@@ -255,26 +255,63 @@ struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
 };
-
-static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
+#endif
+#if defined __ANDROID__ || defined __UCLIBC__
+static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
-    Elf_Half idx = 0;
-    size_t real_base;
-    Elf_Dyn *dynamic;
+    Elf_Half idx;
+
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        char* base = (char*)info->dlpi_addr + phdr->p_vaddr;
+        char *base = (char*)info->dlpi_addr + phdr->p_vaddr;
+
         if (base <= data->addr && data->addr < base + phdr->p_memsz) {
             break;
         }
     }
+
     if (idx == info->dlpi_phnum) {
         return 0;
     }
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+
+        if (phdr->p_type == PT_DYNAMIC) {
+            data->lmap.l_addr = info->dlpi_addr;
+            data->lmap.l_ld = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+#endif
+
+#if defined __FreeBSD__
+static int dl_iterate_cb_freebsd(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
+    Elf_Half idx = 0;
+    size_t real_base;
+    Elf_Dyn *dynamic = NULL;
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        char* base = (char*)info->dlpi_addr + phdr->p_vaddr;
+
+        if (base <= data->addr && data->addr < base + phdr->p_memsz) {
+            break;
+        }
+    }
+
+    if (idx == info->dlpi_phnum) {
+        return 0;
+    }
+
     real_base = info->dlpi_addr;
-    dynamic=NULL;
-    
+
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
 
@@ -289,12 +326,12 @@ static int dl_iterate_cb(struct dl_phdr_info *info, size_t size, void *cb_data)
 
     if (dynamic != NULL) {
 
-    #if __FreeBSD__ >= 13
+#if __FreeBSD__ >= 13
         data->lmap.l_addr = (caddr_t)info->dlpi_addr;
-        data->lmap.l_base = (caddr_t)real_base;  
-    #else
+        data->lmap.l_base = (caddr_t)real_base;
+#else
         data->lmap.l_addr = info->dlpi_addr;
-    #endif
+#endif
 
         data->lmap.l_ld = dynamic;
         return 1;
@@ -453,16 +490,39 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
 int plthook_open_by_address(plthook_t **plthook_out, void *address)
 {
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__
+
+#if defined(__ANDROID__) || defined(__UCLIBC__)
+
     struct dl_iterate_data data = {0,};
     data.addr = address;
-    dl_iterate_phdr(dl_iterate_cb, &data);
+
+    dl_iterate_phdr(dl_iterate_cb_android, &data);
+
     if (data.lmap.l_ld == NULL) {
         set_errmsg("Could not find memory region containing address %p", address);
         return PLTHOOK_INTERNAL_ERROR;
     }
+
     return plthook_open_real(plthook_out, &data.lmap);
+
+
+#elif defined(__FreeBSD__)
+
+    struct dl_iterate_data data = {0,};
+    data.addr = address;
+
+    dl_iterate_phdr(dl_iterate_cb_freebsd, &data);
+
+    if (data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find memory region containing address %p", address);
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+
+    return plthook_open_real(plthook_out, &data.lmap);
+
+
 #else
+
     Dl_info info;
     union {
         struct link_map *lmap;
@@ -470,11 +530,14 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     } addr = { NULL };
 
     *plthook_out = NULL;
+
     if (dladdr1(address, &info, (void**)(&addr.ptr), RTLD_DL_LINKMAP) == 0) {
         set_errmsg("dladdr error");
         return PLTHOOK_FILE_NOT_FOUND;
     }
+
     return plthook_open_real(plthook_out, addr.lmap);
+
 #endif
 }
 
