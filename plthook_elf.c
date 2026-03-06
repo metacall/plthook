@@ -710,7 +710,11 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 struct mem_prot_iter {
     struct kinfo_vmentry *kve;
     int idx;
-    size_t num;
+    #if defined __NetBSD__
+      size_t num;
+    #else
+      int num;
+    #endif
 };
 
 static int mem_prot_begin(mem_prot_iter_t *iter)
