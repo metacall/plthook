@@ -60,6 +60,7 @@
 #endif
 #ifdef __NetBSD__
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <util.h>
 #endif
 #include <elf.h>
@@ -334,7 +335,7 @@ static int dl_iterate_cb_freebsd(struct dl_phdr_info *info, size_t size, void *c
         data->lmap.l_addr = (caddr_t)info->dlpi_addr;
         data->lmap.l_base = (caddr_t)real_base;
 #else
-        data->lmap.l_addr = info->dlpi_addr;
+        data->lmap.l_addr = (caddr_t)info->dlpi_addr;
 #endif
 
         data->lmap.l_ld = dynamic;
@@ -709,7 +710,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 struct mem_prot_iter {
     struct kinfo_vmentry *kve;
     int idx;
-    int num;
+    size_t num;
 };
 
 static int mem_prot_begin(mem_prot_iter_t *iter)
