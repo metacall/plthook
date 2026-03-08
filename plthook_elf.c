@@ -365,10 +365,6 @@ static int dl_iterate_exe_cb_netbsd(struct dl_phdr_info *info, size_t size, void
     Elf_Dyn *dynamic = NULL;
 
     (void)size;
-    printf("dl_iterate_exe_cb_netbsd: name=%s, addr=%p\n",                                                                                                                          
-         info->dlpi_name ? info->dlpi_name : "(null)",                                                                                                                            
-         (void*)info->dlpi_addr); 
-
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
@@ -640,22 +636,9 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
-    #elif defined __FreeBSD__
-        return plthook_open_shared_library(plthook_out, NULL);
-
-    #elif defined __NetBSD__
-        struct dl_iterate_data data;
-        memset(&data, 0, sizeof(data));
-
-        dl_iterate_phdr(dl_iterate_exe_cb_netbsd, &data);
-
-        if (data.lmap.l_ld == NULL) {
-            set_errmsg("Could not find executable via dl_iterate_phdr");
-            return PLTHOOK_INTERNAL_ERROR;
-        }
-
-        return plthook_open_real(plthook_out, &data.lmap);
-    #endif
+    #elif defined __FreeBSD__ || defined __NetBSD__
+    return plthook_open_shared_library(plthook_out, NULL);
+#endif
 }
 
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
@@ -892,6 +875,16 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #elif defined __FreeBSD__ || defined __sun || defined __NetBSD__
 #if __FreeBSD__ >= 13
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_base;
+#elif defined __NetBSD__
+    struct dl_iterate_data exe_data;
+    const Elf_Ehdr *ehdr;
+    memset(&exe_data, 0, sizeof(exe_data));
+    if (lmap->l_addr == 0) {
+        dl_iterate_phdr(dl_iterate_exe_cb_netbsd, &exe_data);
+        ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
+    } else {
+        ehdr = (const Elf_Ehdr*)lmap->l_addr;
+    }
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
