@@ -365,11 +365,10 @@ static int dl_iterate_exe_cb_netbsd(struct dl_phdr_info *info, size_t size, void
     Elf_Dyn *dynamic = NULL;
 
     (void)size;
+    printf("dl_iterate_exe_cb_netbsd: name=%s, addr=%p\n",                                                                                                                          
+         info->dlpi_name ? info->dlpi_name : "(null)",                                                                                                                            
+         (void*)info->dlpi_addr); 
 
-    /* main executable has empty name */
-    if (!(info->dlpi_name == NULL || info->dlpi_name[0] == '\0')) {
-        return 0;
-    }
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
