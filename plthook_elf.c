@@ -295,12 +295,18 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 #endif
 
 #if defined __FreeBSD__ || defined __NetBSD__
-static int dl_iterate_cb_freebsd(struct dl_phdr_info *info, size_t size, void *cb_data)
+static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
+
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
-    size_t real_base;
+
+#if defined(__FreeBSD__)
+    size_t real_base = info->dlpi_addr;
+#endif
+
     Elf_Dyn *dynamic = NULL;
+    (void)size;
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
@@ -315,14 +321,18 @@ static int dl_iterate_cb_freebsd(struct dl_phdr_info *info, size_t size, void *c
         return 0;
     }
 
+#if defined(__FreeBSD__)
     real_base = info->dlpi_addr;
+#endif
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
 
+#if defined(__FreeBSD__)
         if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
             real_base = info->dlpi_addr + phdr->p_vaddr;
         }
+#endif
 
         if (phdr->p_type == PT_DYNAMIC) {
             dynamic = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
@@ -338,6 +348,43 @@ static int dl_iterate_cb_freebsd(struct dl_phdr_info *info, size_t size, void *c
         data->lmap.l_addr = (caddr_t)info->dlpi_addr;
 #endif
 
+        data->lmap.l_ld = dynamic;
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
+#if defined __NetBSD__
+static int dl_iterate_exe_cb_netbsd(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
+    Elf_Half idx;
+    size_t real_base = 0;
+    Elf_Dyn *dynamic = NULL;
+
+    (void)size;
+
+    /* main executable has empty name */
+    if (!(info->dlpi_name == NULL || info->dlpi_name[0] == '\0')) {
+        return 0;
+    }
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+
+        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
+            real_base = info->dlpi_addr + phdr->p_vaddr;
+        }
+
+        if (phdr->p_type == PT_DYNAMIC) {
+            dynamic = (Elf_Dyn*)(info->dlpi_addr + phdr->p_vaddr);
+        }
+    }
+
+    if (dynamic != NULL) {
+        data->lmap.l_addr = (caddr_t)real_base;
         data->lmap.l_ld = dynamic;
         return 1;
     }
@@ -516,7 +563,7 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     struct dl_iterate_data data = {0,};
     data.addr = address;
 
-    dl_iterate_phdr(dl_iterate_cb_freebsd, &data);
+    dl_iterate_phdr(dl_iterate_cb_bsd, &data);
 
     if (data.lmap.l_ld == NULL) {
         set_errmsg("Could not find memory region containing address %p", address);
@@ -594,12 +641,22 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
-#elif defined __FreeBSD__ || defined __NetBSD__
-    return plthook_open_shared_library(plthook_out, NULL);
-#else
-    set_errmsg("Opening the main program is not supported on this platform.");
-    return PLTHOOK_NOT_IMPLEMENTED;
-#endif
+    #elif defined __FreeBSD__
+        return plthook_open_shared_library(plthook_out, NULL);
+
+    #elif defined __NetBSD__
+        struct dl_iterate_data data;
+        memset(&data, 0, sizeof(data));
+
+        dl_iterate_phdr(dl_iterate_exe_cb_netbsd, &data);
+
+        if (data.lmap.l_ld == NULL) {
+            set_errmsg("Could not find executable via dl_iterate_phdr");
+            return PLTHOOK_INTERNAL_ERROR;
+        }
+
+        return plthook_open_real(plthook_out, &data.lmap);
+    #endif
 }
 
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
@@ -709,12 +766,13 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 #elif defined __FreeBSD__ || defined __NetBSD__
 struct mem_prot_iter {
     struct kinfo_vmentry *kve;
+#if defined(__NetBSD__)
+    size_t idx;
+    size_t num;
+#else
     int idx;
-    #if defined __NetBSD__
-      size_t num;
-    #else
-      int num;
-    #endif
+    int num;
+#endif
 };
 
 static int mem_prot_begin(mem_prot_iter_t *iter)
