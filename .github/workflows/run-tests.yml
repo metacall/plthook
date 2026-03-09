@@ -284,8 +284,12 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - { name: freebsd, version: '12.4' }
           - { name: freebsd, version: '15.0' }
           - { name: netbsd,  version: '10.1' }
+        architecture:
+          - x86-64
+          - arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -295,6 +299,7 @@ jobs:
         with:
           operating_system: ${{ matrix.os.name }}
           version: ${{ matrix.os.version }}
+          architecture: ${{ matrix.architecture }}
           run: |
             OS=$(uname -s)
 

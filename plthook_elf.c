@@ -356,8 +356,8 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 }
 #endif
 
-#if defined __NetBSD__
-static int dl_iterate_exe_cb_netbsd(struct dl_phdr_info *info, size_t size, void *cb_data)
+#if defined __FreeBSD__ || defined __NetBSD__
+static int dl_iterate_exe_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx;
@@ -880,11 +880,21 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     const Elf_Ehdr *ehdr;
     memset(&exe_data, 0, sizeof(exe_data));
     if (lmap->l_addr == 0) {
-        dl_iterate_phdr(dl_iterate_exe_cb_netbsd, &exe_data);
+        dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
         ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
     } else {
         ehdr = (const Elf_Ehdr*)lmap->l_addr;
     }
+#elif defined __FreeBSD__                                                        
+      struct dl_iterate_data exe_data;                                             
+      const Elf_Ehdr *ehdr;                                                        
+      memset(&exe_data, 0, sizeof(exe_data));                                      
+      if (lmap->l_addr == 0) {                                                     
+          dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);                       
+          ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;                            
+      } else {                                                                     
+          ehdr = (const Elf_Ehdr*)lmap->l_addr;                                    
+      }
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
