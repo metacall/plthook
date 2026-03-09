@@ -300,6 +300,7 @@ jobs:
           operating_system: ${{ matrix.os.name }}
           version: ${{ matrix.os.version }}
           architecture: ${{ matrix.architecture }}
+          shell: sh
           run: |
             OS=$(uname -s)
 
