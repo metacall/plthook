@@ -301,7 +301,7 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
 
-#if defined(__FreeBSD__)
+#if defined __FreeBSD__
     size_t real_base = info->dlpi_addr;
 #endif
 
@@ -321,14 +321,14 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
         return 0;
     }
 
-#if defined(__FreeBSD__)
+#if defined __FreeBSD__
     real_base = info->dlpi_addr;
 #endif
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
 
-#if defined(__FreeBSD__)
+#if defined __FreeBSD__
         if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
             real_base = info->dlpi_addr + phdr->p_vaddr;
         }
@@ -341,7 +341,7 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 
     if (dynamic != NULL) {
 
-#if __FreeBSD__ >= 13
+#if defined __FreeBSD__ && __FreeBSD__ >= 13
         data->lmap.l_addr = (caddr_t)info->dlpi_addr;
         data->lmap.l_base = (caddr_t)real_base;
 #else
@@ -538,7 +538,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 int plthook_open_by_address(plthook_t **plthook_out, void *address)
 {
 
-#if defined(__ANDROID__) || defined(__UCLIBC__)
+#if defined __ANDROID__ || defined __UCLIBC__
 
     struct dl_iterate_data data = {0,};
     data.addr = address;
@@ -553,7 +553,7 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     return plthook_open_real(plthook_out, &data.lmap);
 
 
-#elif defined(__FreeBSD__) || defined(__NetBSD__)
+#elif defined __FreeBSD__ || defined __NetBSD__
 
     struct dl_iterate_data data = {0,};
     data.addr = address;
@@ -748,7 +748,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 #elif defined __FreeBSD__ || defined __NetBSD__
 struct mem_prot_iter {
     struct kinfo_vmentry *kve;
-#if defined(__NetBSD__)
+#if defined __NetBSD__
     size_t idx;
     size_t num;
 #else
@@ -873,9 +873,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     dyn_addr_base = (const char*)lmap->l_addr;
 #endif
 #elif defined __FreeBSD__ || defined __sun || defined __NetBSD__
-#if __FreeBSD__ >= 13
-    const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_base;
-#elif defined __NetBSD__
+#if defined __NetBSD__
     struct dl_iterate_data exe_data;
     const Elf_Ehdr *ehdr;
     memset(&exe_data, 0, sizeof(exe_data));
@@ -885,16 +883,20 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     } else {
         ehdr = (const Elf_Ehdr*)lmap->l_addr;
     }
-#elif defined __FreeBSD__                                                        
-      struct dl_iterate_data exe_data;                                             
-      const Elf_Ehdr *ehdr;                                                        
-      memset(&exe_data, 0, sizeof(exe_data));                                      
-      if (lmap->l_addr == 0) {                                                     
-          dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);                       
-          ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;                            
-      } else {                                                                     
-          ehdr = (const Elf_Ehdr*)lmap->l_addr;                                    
-      }
+#elif defined __FreeBSD__
+#if __FreeBSD__ < 13
+    struct dl_iterate_data exe_data;
+    const Elf_Ehdr *ehdr;
+    memset(&exe_data, 0, sizeof(exe_data));
+    if (lmap->l_addr == 0) {
+        dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
+        ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
+    } else {
+        ehdr = (const Elf_Ehdr*)lmap->l_addr;
+    }
+#else
+    const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_base;
+#endif
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
@@ -910,7 +912,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #error unsupported OS
 #endif
 
-    /* get .dynsym section */
+    /* Get .dynsym section */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_SYMTAB);
     if (dyn == NULL) {
         set_errmsg("failed to find DT_SYMTAB");
