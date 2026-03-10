@@ -305,19 +305,18 @@ jobs:
             set -exuo pipefail
             OS=$(uname -s)
 
-            which make
+            # if [ "$OS" = "FreeBSD" ]; then
+            #   if [ "$(uname -r | cut -d. -f1)" = "12" ]; then
+            #     fetch https://download.freebsd.org/ports/ports/ports.tar.xz
+            #     sudo tar -xJf ports.tar.xz -C /usr
+            #     cd /usr/ports/devel/gmake
+            #     sudo make install clean
+            #   else
+            #     sudo pkg install -y gmake
+            #   fi
+            # elif [ "$OS" = "NetBSD" ]; then
+            #   sudo pkgin -y install gmake
+            # fi
 
-            if [ "$OS" = "FreeBSD" ]; then
-              if [ "$(uname -r | cut -d. -f1)" = "12" ]; then
-                fetch https://download.freebsd.org/ports/ports/ports.tar.xz
-                sudo tar -xJf ports.tar.xz -C /usr
-                cd /usr/ports/devel/gmake
-                sudo make install clean
-              else
-                sudo pkg install -y gmake
-              fi
-            elif [ "$OS" = "NetBSD" ]; then
-              sudo pkgin -y install gmake
-            fi
-
-            cd test && gmake relro_pie_tests
+            # cd test && gmake relro_pie_tests
+            cd test && make relro_pie_tests
