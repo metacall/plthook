@@ -250,7 +250,7 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __sun || defined __NetBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
@@ -795,7 +795,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
         free(iter->kve);
     }
 }
-#elif defined(__sun)
+#elif defined __sun
 struct mem_prot_iter {
     FILE *fp;
     prmap_t maps[20];
@@ -872,7 +872,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #if defined __ANDROID__ || defined __UCLIBC__
     dyn_addr_base = (const char*)lmap->l_addr;
 #endif
-#elif defined __FreeBSD__ || defined __sun || defined __NetBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __sun
 #if defined __NetBSD__
     struct dl_iterate_data exe_data;
     const Elf_Ehdr *ehdr;
@@ -1053,7 +1053,7 @@ static int plthook_get_mem_prot(plthook_t *plthook, void *addr)
     return 0;
 }
 
-#if defined __FreeBSD__ || defined __sun || defined __NetBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr)
 {
     static const unsigned short s = 1;
