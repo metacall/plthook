@@ -307,14 +307,9 @@ jobs:
 
             if [ "$OS" = "FreeBSD" ]; then
               if [ "$(uname -r | cut -d. -f1)" = "12" ]; then
-                # fetch https://download.freebsd.org/ports/ports/ports.tar.xz
-                # sudo tar -xJf ports.tar.xz -C /usr
-                # cd /usr/ports/devel/gmake
-                # sudo make install clean
-                fetch -o gmake.tar.gz https://ports.freebsd.org/cgi/ports.cgi/devel/gmake.tar.gz
-                sudo tar xf gmake.tar.gz
-                cd gmake
-                make -DBATCH install clean
+                ARCH=$(uname -m)
+                fetch https://pkg.freebsd.org/FreeBSD:12:${ARCH}/latest/All/gmake-4.4.1.pkg
+                sudo pkg add gmake-4.4.1.pkg
               else
                 sudo pkg install -y gmake
               fi
