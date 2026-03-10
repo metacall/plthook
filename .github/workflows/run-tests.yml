@@ -302,10 +302,18 @@ jobs:
           architecture: ${{ matrix.architecture }}
           shell: sh
           run: |
+            set -exuo pipefail
             OS=$(uname -s)
 
             if [ "$OS" = "FreeBSD" ]; then
-              sudo pkg install -y gmake
+              if [ "$(uname -r | cut -d. -f1)" = "12" ]; then
+                fetch https://cgit.freebsd.org/ports/snapshot/ports.tar.gz
+                sudo tar xf ports.tar.gz -C /usr
+                cd /usr/ports/devel/gmake
+                sudo make install clean
+              else
+                sudo pkg install -y gmake
+              fi
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
             fi
