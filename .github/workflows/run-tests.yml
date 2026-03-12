@@ -306,13 +306,7 @@ jobs:
             OS=$(uname -s)
 
             if [ "$OS" = "FreeBSD" ]; then
-              if [ "$(uname -r | cut -d. -f1)" = "12" ]; then
-                ARCH=$(uname -m)
-                fetch https://pkg.freebsd.org/FreeBSD:12:${ARCH}/latest/All/gmake-4.4.1.pkg
-                sudo pkg add gmake-4.4.1.pkg
-              else
-                sudo pkg install -y gmake
-              fi
+                env IGNORE_OSVERSION=yes sudo pkg install -y gmake
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
             fi
