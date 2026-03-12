@@ -306,7 +306,17 @@ jobs:
             OS=$(uname -s)
 
             if [ "$OS" = "FreeBSD" ]; then
-                env IGNORE_OSVERSION=yes sudo pkg install -y gmake
+              if pkg install -y gmake 2>/dev/null; then
+                :
+              else
+                fetch https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz
+                tar xzf make-4.4.1.tar.gz
+                cd make-4.4.1
+                ./configure
+                sh build.sh
+                sudo cp make /usr/local/bin/gmake
+                cd ..
+              fi
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
             fi
