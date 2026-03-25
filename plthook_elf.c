@@ -857,7 +857,7 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
         mem_prot->prot |= PROT_EXEC;
     }
     iter->previous_end = iter->entry.kve_end;
-    iter->entry.kve_start = iter->entry.kve_end;
+    iter->entry.kve_start += 1;
     return 0;
 }
 
