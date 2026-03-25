@@ -86,6 +86,12 @@
 #if !defined(R_X86_64_JUMP_SLOT) && defined(R_X86_64_JMP_SLOT)
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #endif
+#ifndef R_X86_64_JUMP_SLOT
+#define R_X86_64_JUMP_SLOT 7
+#endif
+#ifndef R_X86_64_GLOB_DAT
+#define R_X86_64_GLOB_DAT 6
+#endif
 
 #if defined __x86_64__ || defined __x86_64
 #define R_JUMP_SLOT   R_X86_64_JUMP_SLOT
@@ -254,7 +260,7 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun || defined __OpenBSD__
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
