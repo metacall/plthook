@@ -287,6 +287,7 @@ jobs:
           - { name: freebsd, version: '12.4' }
           - { name: freebsd, version: '15.0' }
           - { name: netbsd,  version: '10.1' }
+          - { name: openbsd, version: '7.6' }
         architecture:
           - x86-64
           - arm64
@@ -319,6 +320,7 @@ jobs:
               fi
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
+            elif [ "$OS" = "OpenBSD" ]; then
+              pkg_add -I gmake
             fi
-
             cd test && gmake relro_pie_tests
