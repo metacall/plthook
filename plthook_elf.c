@@ -829,7 +829,7 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
 
     len = sizeof(iter->entry);
     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
-        set_errmsg("failed to call sysctl(KERN_PROC_VMMAP)");
+        set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
         return -1;
     }
     if (len == 0) {
