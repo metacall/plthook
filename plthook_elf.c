@@ -828,10 +828,16 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
     size_t len;
 
     len = sizeof(iter->entry);
+    fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
         set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
         return -1;
     }
+    fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
+            (unsigned long)len,
+            (unsigned long)iter->entry.kve_start,
+            (unsigned long)iter->entry.kve_end,
+            (unsigned long)iter->entry.kve_protection);
     if (len == 0) {
         return -1;
     }
