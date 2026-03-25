@@ -321,6 +321,6 @@ jobs:
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
             elif [ "$OS" = "OpenBSD" ]; then
-              pkg_add -I gmake
+              sudo pkg_add -I gmake
             fi
             cd test && gmake relro_pie_tests
