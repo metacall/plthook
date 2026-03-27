@@ -48,7 +48,7 @@ ifeq ($(UNAME_S),OpenBSD)
   # OpenBSD
   TESTS = relro_pie_tests
   LIBS = -lm
-  LDFLAGS += -Wl,-z,wxneeded
+  LDFLAGS += -Wl,-z,norelro
 endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
