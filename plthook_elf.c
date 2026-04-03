@@ -63,10 +63,10 @@
 #include <sys/sysctl.h>
 #include <util.h>
 #endif
-#ifdef __OpenBSD__
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#endif
+// #ifdef __OpenBSD__
+// #include <sys/types.h>
+// #include <sys/sysctl.h>
+// #endif
 #include <elf.h>
 #include <link.h>
 #include "plthook.h"
@@ -260,12 +260,14 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
+// || defined __OpenBSD__
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ 
+// || defined __OpenBSD__
 struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
@@ -304,7 +306,8 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 }
 #endif
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ 
+// || defined __OpenBSD__
 static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
 
@@ -366,7 +369,8 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 }
 #endif
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ 
+// || defined __OpenBSD__
 static int dl_iterate_exe_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
@@ -510,7 +514,8 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
-#elif defined __UCLIBC__ || defined __OpenBSD__
+#elif defined __UCLIBC__ 
+// || defined __OpenBSD__
     const static char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
@@ -563,7 +568,8 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     return plthook_open_real(plthook_out, &data.lmap);
 
 
-#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ 
+// || defined __OpenBSD__
 
     struct dl_iterate_data data = {0,};
     data.addr = address;
@@ -646,7 +652,8 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
-    #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+    #elif defined __FreeBSD__ || defined __NetBSD__ 
+    // || defined __OpenBSD__
     return plthook_open_shared_library(plthook_out, NULL);
 #endif
 }
@@ -654,7 +661,8 @@ static int plthook_open_executable(plthook_t **plthook_out)
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
 {
     void *hndl = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ 
+// || defined __OpenBSD__
     int rv;
 #else
     struct link_map *lmap = NULL;
@@ -664,7 +672,8 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         set_errmsg("dlopen error: %s", dlerror());
         return PLTHOOK_FILE_NOT_FOUND;
     }
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ 
+// || defined __OpenBSD__
     rv = plthook_open_by_handle(plthook_out, hndl);
     dlclose(hndl);
     return rv;
@@ -799,72 +808,81 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
     return 0;
 }
 
-static void mem_prot_end(mem_prot_iter_t *iter)
-{
-    if (iter->kve != NULL) {
-        free(iter->kve);
-    }
-}
-#elif defined __OpenBSD__
-struct mem_prot_iter {
-    int mib[3];
-    struct kinfo_vmentry entry;
-    unsigned long previous_end;
-};
+// static void mem_prot_end(mem_prot_iter_t *iter)
+// {
+//     if (iter->kve != NULL) {
+//         free(iter->kve);
+//     }
+// }
+// #elif defined __OpenBSD__
+// struct mem_prot_iter {
+//     int mib[3];
+//     struct kinfo_vmentry entry;
+//     unsigned long previous_end;
+// };
 
-static int mem_prot_begin(mem_prot_iter_t *iter)
-{
-    iter->mib[0] = CTL_KERN;
-    iter->mib[1] = KERN_PROC_VMMAP;
-    iter->mib[2] = getpid();
-    memset(&iter->entry, 0, sizeof(iter->entry));
-    iter->previous_end = 0;
-    iter->entry.kve_start = 0;
-    return 0;
-}
+// static int mem_prot_begin(mem_prot_iter_t *iter)
+// {
+//     iter->mib[0] = CTL_KERN;
+//     iter->mib[1] = KERN_PROC_VMMAP;
+//     iter->mib[2] = getpid();
+//     memset(&iter->entry, 0, sizeof(iter->entry));
+//     iter->previous_end = 0;
+//     iter->entry.kve_start = 0;
+//     return 0;
+// }
 
-static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
-{
-    size_t len;
+// static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
+// {
+//     size_t len;
 
-    len = sizeof(iter->entry);
-    fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
-    if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
-        set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
-        return -1;
-    }
-    fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
-            (unsigned long)len,
-            (unsigned long)iter->entry.kve_start,
-            (unsigned long)iter->entry.kve_end,
-            (unsigned long)iter->entry.kve_protection);
-    if (len == 0) {
-        return -1;
-    }
-    if (iter->entry.kve_end == iter->previous_end) {
-        return -1;
-    }
-    mem_prot->start = iter->entry.kve_start;
-    mem_prot->end = iter->entry.kve_end;
-    mem_prot->prot = 0;
-    if (iter->entry.kve_protection & KVE_PROT_READ) {
-        mem_prot->prot |= PROT_READ;
-    }
-    if (iter->entry.kve_protection & KVE_PROT_WRITE) {
-        mem_prot->prot |= PROT_WRITE;
-    }
-    if (iter->entry.kve_protection & KVE_PROT_EXEC) {
-        mem_prot->prot |= PROT_EXEC;
-    }
-    iter->previous_end = iter->entry.kve_end;
-    iter->entry.kve_start += 1;
-    return 0;
-}
+//     len = sizeof(iter->entry);
+//     fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
+//     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
+//         set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
+//         return -1;
+//     }
+//     fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
+//             (unsigned long)len,
+//             (unsigned long)iter->entry.kve_start,
+//             (unsigned long)iter->entry.kve_end,
+//             (unsigned long)iter->entry.kve_protection);
+//     if (len == 0) {
+//         return -1;
+//     }
+//     if (iter->entry.kve_end == iter->previous_end) {
+//         return -1;
+//     }
+//     mem_prot->start = iter->entry.kve_start;
+//     mem_prot->end = iter->entry.kve_end;
+//     mem_prot->prot = 0;
+//     if (iter->entry.kve_protection & KVE_PROT_READ) {
+//         mem_prot->prot |= PROT_READ;
+//     }
+//     if (iter->entry.kve_protection & KVE_PROT_WRITE) {
+//         mem_prot->prot |= PROT_WRITE;
+//     }
+//     if (iter->entry.kve_protection & KVE_PROT_EXEC) {
+//         mem_prot->prot |= PROT_EXEC;
+//     }
+//     iter->previous_end = iter->entry.kve_end;
+//     iter->entry.kve_start += 1;
+//     return 0;
+// }
 
-static void mem_prot_end(mem_prot_iter_t *iter)
-{
-    (void)iter;
-}
+// static void mem_prot_end(mem_prot_iter_t *iter)
+// {
+//     (void)iter;
+// }
+
+/* TODO: OpenBSD support
+   * mem_prot iteration via sysctl(KERN_PROC_VMMAP) works correctly.
+   * However, OpenBSD 7.3+ introduces mimmutable() which permanently locks
+   * GOT pages as read-only. mprotect() returns EPERM even with -z norelro.
+   * kbind() is a kernel-only syscall locked to ld.so — not usable from userland.
+   * PT_OPENBSD_MUTABLE cannot be retroactively applied to existing GOT pages.
+   * No known userland workaround exists for OpenBSD 7.3+.
+   */
 
 #elif defined __sun
 struct mem_prot_iter {
@@ -943,7 +961,8 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #if defined __ANDROID__ || defined __UCLIBC__
     dyn_addr_base = (const char*)lmap->l_addr;
 #endif
-#elif defined __FreeBSD__ || defined __NetBSD__ || defined __sun || defined __OpenBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
+// || defined __OpenBSD__
 #if defined __NetBSD__
     struct dl_iterate_data exe_data;
     const Elf_Ehdr *ehdr;
@@ -968,16 +987,16 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_base;
 #endif
-#elif defined __OpenBSD__
-    struct dl_iterate_data exe_data;
-    const Elf_Ehdr *ehdr;
-    memset(&exe_data, 0, sizeof(exe_data));
-    if (lmap->l_addr == 0) {
-        dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
-        ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
-    } else {
-        ehdr = (const Elf_Ehdr*)lmap->l_addr;
-    }
+// #elif defined __OpenBSD__
+//     struct dl_iterate_data exe_data;
+//     const Elf_Ehdr *ehdr;
+//     memset(&exe_data, 0, sizeof(exe_data));
+//     if (lmap->l_addr == 0) {
+//         dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
+//         ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
+//     } else {
+//         ehdr = (const Elf_Ehdr*)lmap->l_addr;
+//     }
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
@@ -1134,7 +1153,8 @@ static int plthook_get_mem_prot(plthook_t *plthook, void *addr)
     return 0;
 }
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
+// || defined __OpenBSD__
 static int check_elf_header(const Elf_Ehdr *ehdr)
 {
     static const unsigned short s = 1;

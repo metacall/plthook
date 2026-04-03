@@ -44,12 +44,12 @@ ifeq ($(UNAME_S),NetBSD)
   LIBS = -lm -lutil
 endif
 
-ifeq ($(UNAME_S),OpenBSD)
-  # OpenBSD
-  TESTS = relro_pie_tests
-  LIBS = -lm
-  LDFLAGS += -Wl,-z,norelro
-endif
+# ifeq ($(UNAME_S),OpenBSD)
+#   # OpenBSD
+#   TESTS = relro_pie_tests
+#   LIBS = -lm
+#   LDFLAGS += -Wl,-z,norelro
+# endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
