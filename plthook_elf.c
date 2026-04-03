@@ -808,12 +808,12 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
     return 0;
 }
 
-// static void mem_prot_end(mem_prot_iter_t *iter)
-// {
-//     if (iter->kve != NULL) {
-//         free(iter->kve);
-//     }
-// }
+static void mem_prot_end(mem_prot_iter_t *iter)
+{
+    if (iter->kve != NULL) {
+        free(iter->kve);
+    }
+}
 // #elif defined __OpenBSD__
 // struct mem_prot_iter {
 //     int mib[3];
