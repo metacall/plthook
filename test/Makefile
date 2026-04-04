@@ -36,8 +36,20 @@ ifeq ($(UNAME_S),FreeBSD)
   # FreeBSD
   TESTS = relro_pie_tests
   LIBS = -lm -lutil
-  SKIP_OPEN_BY_ADDRESS_TEST = 1
 endif
+
+ifeq ($(UNAME_S),NetBSD)
+  # NetBSD
+  TESTS = relro_pie_tests
+  LIBS = -lm -lutil
+endif
+
+# ifeq ($(UNAME_S),OpenBSD)
+#   # OpenBSD
+#   TESTS = relro_pie_tests
+#   LIBS = -lm
+#   LDFLAGS += -Wl,-z,norelro
+# endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
