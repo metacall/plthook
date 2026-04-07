@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/kubo/plthook/actions/workflows/run-tests.yml/badge.svg)](https://github.com/kubo/plthook/actions/workflows/run-tests.yml)
 
-## What is plthook.
+## What is plthook
 
 A utility library to hook library function calls issued by
 specified object files (executable and libraries). This modifies
@@ -12,7 +12,12 @@ or [IAT (Import Address Table)][IAT] entries in PE format used on Windows.
 [IAT]: https://en.wikipedia.org/wiki/Portable_Executable#Import_Table
 [ELF]: https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 
-### What is PLT (or IAT)
+## Example
+
+Full working example about how to use plthook in a cross-platform enviroment using CMake:
+https://github.com/metacall/plthook-poc
+
+## What is PLT (or IAT)
 
 Note: This isn't precise explanation. Some details are omitted.
 
@@ -34,7 +39,7 @@ to addresses. The callers directly look at the address in the PLT entry for
 The addresses in PLT entries are resolved (1) at process startup or (2) at first
 function call (lazy binding). It depends on OSes or on settings.
 
-### What plthook does.
+## What plthook does
 
 ![figure2](images/figure2.png)
 
@@ -52,7 +57,7 @@ When the hook function `hook_foo_func()` is in `libbar.so`, just call the
 original function `foo_func()`. It looks the PLT entry in `libbar.so` and jumps
 to the original.
 
-#### When hook functions are inside of modified files
+### When hook functions are inside of modified files
 
 ![figure4](images/figure4.png)
 
