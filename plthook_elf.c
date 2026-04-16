@@ -797,6 +797,16 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 }
 
 #elif defined __OpenBSD__
+
+/* TODO: OpenBSD support
+   * mem_prot iteration via sysctl(KERN_PROC_VMMAP) works correctly.
+   * However, OpenBSD 7.3+ introduces mimmutable() which permanently locks
+   * GOT pages as read-only. mprotect() returns EPERM even with -z norelro.
+   * kbind() is a kernel-only syscall locked to ld.so — not usable from userland.
+   * PT_OPENBSD_MUTABLE cannot be retroactively applied to existing GOT pages.
+   * No known userland workaround exists for OpenBSD 7.3+.
+   */
+
 struct mem_prot_iter {
     int mib[3];
     struct kinfo_vmentry entry;
@@ -816,19 +826,17 @@ static int mem_prot_begin(mem_prot_iter_t *iter)
 
 static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
 {
-    size_t len;
-
-    len = sizeof(iter->entry);
-    fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
+    size_t len = sizeof(iter->entry);
+    /* fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start); */
     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
         set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
         return -1;
     }
-    fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
+    /* fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
             (unsigned long)len,
             (unsigned long)iter->entry.kve_start,
             (unsigned long)iter->entry.kve_end,
-            (unsigned long)iter->entry.kve_protection);
+            (unsigned long)iter->entry.kve_protection); */
     if (len == 0) {
         return -1;
     }
@@ -857,72 +865,6 @@ static void mem_prot_end(mem_prot_iter_t *iter)
     (void)iter;
 }
 
-/*
-#ifdef __OpenBSD__
-
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <uvm/uvm_extern.h>
-
-struct mem_prot_iter {
-    int mib[3];
-    struct kinfo_vmentry entry;
-};
-
-static int mem_prot_begin(mem_prot_iter_t *iter)
-{
-    iter->mib[0] = CTL_KERN;
-    iter->mib[1] = KERN_PROC_VMMAP;
-    iter->mib[2] = getpid();
-
-    memset(&iter->entry, 0, sizeof(iter->entry));
-    iter->entry.kve_start = 0;
-
-    return 0;
-}
-
-static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
-{
-    size_t len = sizeof(iter->entry);
-
-    if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
-        if (errno == ESRCH) {
-            return -1;
-        }
-        set_errmsg("sysctl(KERN_PROC_VMMAP) failed: %s", strerror(errno));
-        return -1;
-    }
-
-    mem_prot->start = iter->entry.kve_start;
-    mem_prot->end   = iter->entry.kve_end;
-    mem_prot->prot  = 0;
-
-    if (iter->entry.kve_protection & KVE_PROT_READ)
-        mem_prot->prot |= PROT_READ;
-    if (iter->entry.kve_protection & KVE_PROT_WRITE)
-        mem_prot->prot |= PROT_WRITE;
-    if (iter->entry.kve_protection & KVE_PROT_EXEC)
-        mem_prot->prot |= PROT_EXEC;
-
-    iter->entry.kve_start = iter->entry.kve_end;
-
-    return 0;
-}
-
-static void mem_prot_end(mem_prot_iter_t *iter)
-{
-    (void)iter;
-}
-*/
-/* TODO: OpenBSD support
-   * mem_prot iteration via sysctl(KERN_PROC_VMMAP) works correctly.
-   * However, OpenBSD 7.3+ introduces mimmutable() which permanently locks
-   * GOT pages as read-only. mprotect() returns EPERM even with -z norelro.
-   * kbind() is a kernel-only syscall locked to ld.so — not usable from userland.
-   * PT_OPENBSD_MUTABLE cannot be retroactively applied to existing GOT pages.
-   * No known userland workaround exists for OpenBSD 7.3+.
-   */
-
 #elif defined __sun
 struct mem_prot_iter {
     FILE *fp;
@@ -934,7 +876,7 @@ struct mem_prot_iter {
 static int mem_prot_begin(mem_prot_iter_t *iter)
 {
     iter->fp = fopen("/proc/self/map", "r");
-    if (iter->fp == NULL) {
+    if (iter->fp =NULL) {
         set_errmsg("failed to open /proc/self/map");
         return -1;
     }
@@ -981,7 +923,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 {
-    plthook_t plthook = {NULL,};
+    plthook_t plthook = {NULL, NULL};
     const Elf_Dyn *dyn;
     const char *dyn_addr_base = NULL;
 
