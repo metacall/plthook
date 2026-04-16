@@ -967,16 +967,25 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_base;
 #endif
-// #elif defined __OpenBSD__
-//     struct dl_iterate_data exe_data;
-//     const Elf_Ehdr *ehdr;
-//     memset(&exe_data, 0, sizeof(exe_data));
-//     if (lmap->l_addr == 0) {
-//         dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
-//         ehdr = (const Elf_Ehdr*)exe_data.lmap.l_addr;
-//     } else {
-//         ehdr = (const Elf_Ehdr*)lmap->l_addr;
-//     }
+#elif defined __OpenBSD__
+    struct dl_iterate_data exe_data;
+    const Elf_Ehdr *ehdr = NULL;
+    memset(&exe_data, 0, sizeof(exe_data));
+    if (lmap->l_addr == 0) {
+        dl_iterate_phdr(dl_iterate_exe_cb_bsd, &exe_data);
+        if (exe_data.lmap.l_ld == NULL) {
+            set_errmsg("Could not locate main executable via dl_iterate_phdr");
+            return PLTHOOK_INTERNAL_ERROR;
+        }
+        /* On OpenBSD, dlpi_addr is already the base */
+        ehdr = (const Elf_Ehdr *)exe_data.lmap.l_addr;
+    } else {
+        ehdr = (const Elf_Ehdr *)lmap->l_addr;
+    }
+    if (ehdr == NULL) {
+        set_errmsg("Invalid ELF header address");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
