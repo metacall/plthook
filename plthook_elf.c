@@ -309,12 +309,8 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
-
-#if defined __FreeBSD__
-    size_t real_base = info->dlpi_addr;
-#endif
-
     Elf_Dyn *dynamic = NULL;
+
     (void)size;
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
@@ -329,10 +325,6 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
     if (idx == info->dlpi_phnum) {
         return 0;
     }
-
-#if defined __FreeBSD__
-    real_base = info->dlpi_addr;
-#endif
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
