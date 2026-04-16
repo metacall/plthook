@@ -856,6 +856,66 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 //     (void)iter;
 // }
 
+#ifdef __OpenBSD__
+
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <uvm/uvm_extern.h>
+
+struct mem_prot_iter {
+    int mib[3];
+    struct kinfo_vmentry entry;
+};
+
+static int mem_prot_begin(mem_prot_iter_t *iter)
+{
+    iter->mib[0] = CTL_KERN;
+    iter->mib[1] = KERN_PROC_VMMAP;
+    iter->mib[2] = getpid();
+
+    memset(&iter->entry, 0, sizeof(iter->entry));
+    iter->entry.kve_start = 0;
+
+    return 0;
+}
+
+static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
+{
+    size_t len = sizeof(iter->entry);
+
+    if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
+        if (errno == ESRCH) {
+            /* End */
+            return -1;
+        }
+        set_errmsg("sysctl(KERN_PROC_VMMAP) failed: %s", strerror(errno));
+        return -1;
+    }
+
+    mem_prot->start = iter->entry.kve_start;
+    mem_prot->end   = iter->entry.kve_end;
+    mem_prot->prot  = 0;
+
+    if (iter->entry.kve_protection & KVE_PROT_READ)
+        mem_prot->prot |= PROT_READ;
+    if (iter->entry.kve_protection & KVE_PROT_WRITE)
+        mem_prot->prot |= PROT_WRITE;
+    if (iter->entry.kve_protection & KVE_PROT_EXEC)
+        mem_prot->prot |= PROT_EXEC;
+
+    /* Advance cursor */
+    iter->entry.kve_start = iter->entry.kve_end;
+
+    return 0;
+}
+
+static void mem_prot_end(mem_prot_iter_t *iter)
+{
+    (void)iter;
+}
+
+#endif
+
 /* TODO: OpenBSD support
    * mem_prot iteration via sysctl(KERN_PROC_VMMAP) works correctly.
    * However, OpenBSD 7.3+ introduces mimmutable() which permanently locks
@@ -864,6 +924,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
    * PT_OPENBSD_MUTABLE cannot be retroactively applied to existing GOT pages.
    * No known userland workaround exists for OpenBSD 7.3+.
    */
+
 
 #elif defined __sun
 struct mem_prot_iter {
