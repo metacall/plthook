@@ -795,67 +795,69 @@ static void mem_prot_end(mem_prot_iter_t *iter)
         free(iter->kve);
     }
 }
-// #elif defined __OpenBSD__
-// struct mem_prot_iter {
-//     int mib[3];
-//     struct kinfo_vmentry entry;
-//     unsigned long previous_end;
-// };
 
-// static int mem_prot_begin(mem_prot_iter_t *iter)
-// {
-//     iter->mib[0] = CTL_KERN;
-//     iter->mib[1] = KERN_PROC_VMMAP;
-//     iter->mib[2] = getpid();
-//     memset(&iter->entry, 0, sizeof(iter->entry));
-//     iter->previous_end = 0;
-//     iter->entry.kve_start = 0;
-//     return 0;
-// }
+#elif defined __OpenBSD__
+struct mem_prot_iter {
+    int mib[3];
+    struct kinfo_vmentry entry;
+    unsigned long previous_end;
+};
 
-// static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
-// {
-//     size_t len;
+static int mem_prot_begin(mem_prot_iter_t *iter)
+{
+    iter->mib[0] = CTL_KERN;
+    iter->mib[1] = KERN_PROC_VMMAP;
+    iter->mib[2] = getpid();
+    memset(&iter->entry, 0, sizeof(iter->entry));
+    iter->previous_end = 0;
+    iter->entry.kve_start = 0;
+    return 0;
+}
 
-//     len = sizeof(iter->entry);
-//     fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
-//     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
-//         set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
-//         return -1;
-//     }
-//     fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
-//             (unsigned long)len,
-//             (unsigned long)iter->entry.kve_start,
-//             (unsigned long)iter->entry.kve_end,
-//             (unsigned long)iter->entry.kve_protection);
-//     if (len == 0) {
-//         return -1;
-//     }
-//     if (iter->entry.kve_end == iter->previous_end) {
-//         return -1;
-//     }
-//     mem_prot->start = iter->entry.kve_start;
-//     mem_prot->end = iter->entry.kve_end;
-//     mem_prot->prot = 0;
-//     if (iter->entry.kve_protection & KVE_PROT_READ) {
-//         mem_prot->prot |= PROT_READ;
-//     }
-//     if (iter->entry.kve_protection & KVE_PROT_WRITE) {
-//         mem_prot->prot |= PROT_WRITE;
-//     }
-//     if (iter->entry.kve_protection & KVE_PROT_EXEC) {
-//         mem_prot->prot |= PROT_EXEC;
-//     }
-//     iter->previous_end = iter->entry.kve_end;
-//     iter->entry.kve_start += 1;
-//     return 0;
-// }
+static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
+{
+    size_t len;
 
-// static void mem_prot_end(mem_prot_iter_t *iter)
-// {
-//     (void)iter;
-// }
+    len = sizeof(iter->entry);
+    fprintf(stderr, "DEBUG sysctl input: kve_start=%lu\n", (unsigned long)iter->entry.kve_start);
+    if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
+        set_errmsg("failed to call sysctl(KERN_PROC_VMMAP): %s", strerror(errno));
+        return -1;
+    }
+    fprintf(stderr, "DEBUG sysctl output: len=%lu kve_start=%lu kve_end=%lu kve_protection=%lu\n",
+            (unsigned long)len,
+            (unsigned long)iter->entry.kve_start,
+            (unsigned long)iter->entry.kve_end,
+            (unsigned long)iter->entry.kve_protection);
+    if (len == 0) {
+        return -1;
+    }
+    if (iter->entry.kve_end == iter->previous_end) {
+        return -1;
+    }
+    mem_prot->start = iter->entry.kve_start;
+    mem_prot->end = iter->entry.kve_end;
+    mem_prot->prot = 0;
+    if (iter->entry.kve_protection & KVE_PROT_READ) {
+        mem_prot->prot |= PROT_READ;
+    }
+    if (iter->entry.kve_protection & KVE_PROT_WRITE) {
+        mem_prot->prot |= PROT_WRITE;
+    }
+    if (iter->entry.kve_protection & KVE_PROT_EXEC) {
+        mem_prot->prot |= PROT_EXEC;
+    }
+    iter->previous_end = iter->entry.kve_end;
+    iter->entry.kve_start += 1;
+    return 0;
+}
 
+static void mem_prot_end(mem_prot_iter_t *iter)
+{
+    (void)iter;
+}
+
+/*
 #ifdef __OpenBSD__
 
 #include <sys/types.h>
@@ -885,7 +887,6 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
 
     if (sysctl(iter->mib, 3, &iter->entry, &len, NULL, 0) == -1) {
         if (errno == ESRCH) {
-            /* End */
             return -1;
         }
         set_errmsg("sysctl(KERN_PROC_VMMAP) failed: %s", strerror(errno));
@@ -903,7 +904,6 @@ static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
     if (iter->entry.kve_protection & KVE_PROT_EXEC)
         mem_prot->prot |= PROT_EXEC;
 
-    /* Advance cursor */
     iter->entry.kve_start = iter->entry.kve_end;
 
     return 0;
@@ -913,9 +913,7 @@ static void mem_prot_end(mem_prot_iter_t *iter)
 {
     (void)iter;
 }
-
-#endif
-
+*/
 /* TODO: OpenBSD support
    * mem_prot iteration via sysctl(KERN_PROC_VMMAP) works correctly.
    * However, OpenBSD 7.3+ introduces mimmutable() which permanently locks
@@ -924,7 +922,6 @@ static void mem_prot_end(mem_prot_iter_t *iter)
    * PT_OPENBSD_MUTABLE cannot be retroactively applied to existing GOT pages.
    * No known userland workaround exists for OpenBSD 7.3+.
    */
-
 
 #elif defined __sun
 struct mem_prot_iter {
