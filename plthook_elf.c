@@ -260,14 +260,12 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
-// || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ 
-// || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
@@ -306,11 +304,9 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 }
 #endif
 
-#if defined __FreeBSD__ || defined __NetBSD__ 
-// || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
-
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
 
@@ -369,8 +365,7 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 }
 #endif
 
-#if defined __FreeBSD__ || defined __NetBSD__ 
-// || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 static int dl_iterate_exe_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
@@ -514,8 +509,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
-#elif defined __UCLIBC__ 
-// || defined __OpenBSD__
+#elif defined __UCLIBC__ || defined __OpenBSD__
     const static char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
@@ -552,9 +546,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
 int plthook_open_by_address(plthook_t **plthook_out, void *address)
 {
-
 #if defined __ANDROID__ || defined __UCLIBC__
-
     struct dl_iterate_data data = {0,};
     data.addr = address;
 
@@ -566,11 +558,7 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     }
 
     return plthook_open_real(plthook_out, &data.lmap);
-
-
-#elif defined __FreeBSD__ || defined __NetBSD__ 
-// || defined __OpenBSD__
-
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     struct dl_iterate_data data = {0,};
     data.addr = address;
 
@@ -582,10 +570,7 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     }
 
     return plthook_open_real(plthook_out, &data.lmap);
-
-
 #else
-
     Dl_info info;
     union {
         struct link_map *lmap;
@@ -600,7 +585,6 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
     }
 
     return plthook_open_real(plthook_out, addr.lmap);
-
 #endif
 }
 
@@ -652,8 +636,7 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
-    #elif defined __FreeBSD__ || defined __NetBSD__ 
-    // || defined __OpenBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     return plthook_open_shared_library(plthook_out, NULL);
 #endif
 }
@@ -661,8 +644,7 @@ static int plthook_open_executable(plthook_t **plthook_out)
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
 {
     void *hndl = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
-#if defined __ANDROID__ || defined __UCLIBC__ 
-// || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
     int rv;
 #else
     struct link_map *lmap = NULL;
@@ -672,8 +654,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         set_errmsg("dlopen error: %s", dlerror());
         return PLTHOOK_FILE_NOT_FOUND;
     }
-#if defined __ANDROID__ || defined __UCLIBC__ 
-// || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
     rv = plthook_open_by_handle(plthook_out, hndl);
     dlclose(hndl);
     return rv;
@@ -961,8 +942,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #if defined __ANDROID__ || defined __UCLIBC__
     dyn_addr_base = (const char*)lmap->l_addr;
 #endif
-#elif defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
-// || defined __OpenBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
 #if defined __NetBSD__
     struct dl_iterate_data exe_data;
     const Elf_Ehdr *ehdr;
@@ -1153,8 +1133,7 @@ static int plthook_get_mem_prot(plthook_t *plthook, void *addr)
     return 0;
 }
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __sun 
-// || defined __OpenBSD__
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr)
 {
     static const unsigned short s = 1;
