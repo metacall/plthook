@@ -63,10 +63,10 @@
 #include <sys/sysctl.h>
 #include <util.h>
 #endif
-// #ifdef __OpenBSD__
-// #include <sys/types.h>
-// #include <sys/sysctl.h>
-// #endif
+#ifdef __OpenBSD__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
 #include <elf.h>
 #include <link.h>
 #include "plthook.h"
