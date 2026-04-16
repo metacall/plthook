@@ -287,8 +287,8 @@ jobs:
           - { name: freebsd, version: '12.4' }
           - { name: freebsd, version: '15.0' }
           - { name: netbsd,  version: '10.1' }
-          # TODO:
-          # - { name: openbsd, version: '7.6' }
+          - { name: openbsd, version: '7.6' }
+          - { name: openbsd, version: '7.2' }
         architecture:
           - x86-64
           - arm64
