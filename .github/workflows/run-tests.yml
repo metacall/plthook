@@ -287,7 +287,9 @@ jobs:
           - { name: freebsd, version: '12.4' }
           - { name: freebsd, version: '15.0' }
           - { name: netbsd,  version: '10.1' }
+          # TODO:
           # - { name: openbsd, version: '7.6' }
+          # - { name: openbsd, version: '7.2' }
         architecture:
           - x86-64
           - arm64
@@ -307,9 +309,7 @@ jobs:
             OS=$(uname -s)
 
             if [ "$OS" = "FreeBSD" ]; then
-              if pkg install -y gmake 2>/dev/null; then
-                :
-              else
+              if ! pkg install -y gmake 2>/dev/null; then
                 fetch https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz
                 tar xzf make-4.4.1.tar.gz
                 cd make-4.4.1
@@ -320,7 +320,7 @@ jobs:
               fi
             elif [ "$OS" = "NetBSD" ]; then
               sudo pkgin -y install gmake
-            # elif [ "$OS" = "OpenBSD" ]; then
-            #   sudo pkg_add -I gmake
+            elif [ "$OS" = "OpenBSD" ]; then
+              sudo pkg_add -I gmake
             fi
             cd test && gmake relro_pie_tests
