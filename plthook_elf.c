@@ -277,6 +277,8 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx;
 
+    (void)size;
+
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         char *base = (char*)info->dlpi_addr + phdr->p_vaddr;
@@ -505,7 +507,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
 #elif defined __UCLIBC__ || defined __OpenBSD__
-    const static char *symbols[] = {
+    static const char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
         "_start"
