@@ -67,7 +67,13 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
+#ifdef __OpenBSD__
+# TODO: Review this.. elf.h is equivalent but definition names may differ
+#include <sys/exec_elf.h>
+#define R_AARCH64_JUMP_SLOT R_AARCH64_JMP_SLOT
+#else
 #include <elf.h>
+#endif
 #include <link.h>
 #include "plthook.h"
 
@@ -164,7 +170,7 @@
 #endif
 #define SIZE_T_FMT "lu"
 #define ELF_WORD_FMT "u"
-#ifdef __ANDROID__
+#if defined __ANDROID__ || defined __OpenBSD__
 #define ELF_XWORD_FMT "llu"
 #else
 #define ELF_XWORD_FMT "lu"
