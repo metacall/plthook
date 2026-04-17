@@ -68,7 +68,7 @@
 #include <sys/sysctl.h>
 #endif
 #ifdef __OpenBSD__
-# TODO: Review this.. elf.h is equivalent but definition names may differ
+// TODO: Review this.. elf.h is equivalent but definition names may differ
 #include <sys/exec_elf.h>
 #define R_AARCH64_JUMP_SLOT R_AARCH64_JMP_SLOT
 #else
