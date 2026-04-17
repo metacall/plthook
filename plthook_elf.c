@@ -309,6 +309,9 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
 {
     struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
     Elf_Half idx = 0;
+#if defined __FreeBSD__ && __FreeBSD__ >= 13
+    size_t real_base = info->dlpi_addr;
+#endif
     Elf_Dyn *dynamic = NULL;
 
     (void)size;
