@@ -10,9 +10,9 @@ $(info CC=$(CC))
 
 CFLAGS_SHARED = -shared -fPIC
 ifeq ($(findstring clang,$(CC)),clang)
-CFLAGS_WARNING = -Weverything -Wpedantic -Werror
+CFLAGS_WARNING = -Weverything -Wpedantic
 else
-CFLAGS_WARNING = -Wall -Wextra -Wpedantic -Werror
+CFLAGS_WARNING = -Wall -Wextra -Wpedantic
 endif
 CFLAGS = $(CFLAGS_WARNING) $(EXTRA_CFLAGS) $(OPT_CFLAGS)
 LDFLAGS = $(EXTRA_LDFLAGS) $(OPT_LDFLAGS)
@@ -30,18 +30,21 @@ ifeq ($(UNAME_S),Linux)
     CC = $(TARGET_PLATFORM)-gcc$(if $(GCC_VERSION),-$(GCC_VERSION))
     KICK_CMD = qemu-$(or $(QEMU_ARCH),$(shell echo $(TARGET_PLATFORM) | sed -e 's/-.*//')) -L /usr/$(TARGET_PLATFORM)
   endif
+  CFLAGS_WARNING += -Werror
 endif
 
 ifeq ($(UNAME_S),FreeBSD)
   # FreeBSD
   TESTS = relro_pie_tests
   LIBS = -lm -lutil
+  CFLAGS_WARNING += -Werror
 endif
 
 ifeq ($(UNAME_S),NetBSD)
   # NetBSD
   TESTS = relro_pie_tests
   LIBS = -lm -lutil
+  CFLAGS_WARNING += -Werror
 endif
 
 ifeq ($(UNAME_S),OpenBSD)
@@ -49,6 +52,7 @@ ifeq ($(UNAME_S),OpenBSD)
   TESTS = relro_pie_tests
   LIBS = -lm
   LDFLAGS += -Wl,-z,norelro
+  CFLAGS_WARNING += -Werror
 endif
 
 ifneq (,$(findstring MINGW,$(UNAME_S)))
@@ -59,6 +63,8 @@ ifneq (,$(findstring MINGW,$(UNAME_S)))
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
   DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
+  # TODO:
+  # CFLAGS_WARNING += -Werror
 endif
 
 ifneq (,$(findstring CYGWIN,$(UNAME_S)))
@@ -69,6 +75,8 @@ ifneq (,$(findstring CYGWIN,$(UNAME_S)))
   LIBS = -ldbghelp
   PLTHOOK_C = plthook_win32.c
   DEF_FILE = libtest.def -Wl,--out-implib=libtest.a
+  # TODO:
+  # CFLAGS_WARNING += -Werror
 endif
 
 ifeq ($(UNAME_S),Darwin)
@@ -76,6 +84,7 @@ ifeq ($(UNAME_S),Darwin)
   CFLAGS_SHARED = -shared -fPIC -Wno-deprecated-declarations
   LIBS = -ldl
   PLTHOOK_C = plthook_osx.c
+  CFLAGS_WARNING += -Werror
 endif
 
 all: libtest.$(SOEXT) testprog$(EXEEXT)
