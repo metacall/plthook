@@ -21,6 +21,9 @@ ABI=x86_64
 
 adb root || true
 adb wait-for-device
+adb logcat -c
+adb logcat > /tmp/android_logcat.txt &
+LOGCAT_PID=$!
 
 adb push "libs/$ABI/libtest.so" /data/local/tmp/
 adb push "libs/$ABI/testprog"   /data/local/tmp/
@@ -31,3 +34,6 @@ run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_
 run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_handle"
 
 echo "All Android tests passed!"
+kill $LOGCAT_PID || true
+echo "=== Logcat output ==="
+cat /tmp/android_logcat.txt
