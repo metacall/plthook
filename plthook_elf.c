@@ -67,12 +67,10 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
-#ifdef __OpenBSD__
-// TODO: Review this.. elf.h is equivalent but definition names may differ
-#include <sys/exec_elf.h>
-#define R_AARCH64_JUMP_SLOT R_AARCH64_JMP_SLOT
-#else
 #include <elf.h>
+#if defined __OpenBSD__ && (defined __aarch64__ || defined __aarch64)
+#define R_AARCH64_GLOB_DAT 1025
+#define R_AARCH64_JUMP_SLOT 1026
 #endif
 #include <link.h>
 #include "plthook.h"
