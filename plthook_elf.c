@@ -873,7 +873,7 @@ struct mem_prot_iter {
 static int mem_prot_begin(mem_prot_iter_t *iter)
 {
     iter->fp = fopen("/proc/self/map", "r");
-    if (iter->fp =NULL) {
+    if (iter->fp == NULL) {
         set_errmsg("failed to open /proc/self/map");
         return -1;
     }
