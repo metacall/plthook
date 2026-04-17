@@ -10,9 +10,9 @@ $(info CC=$(CC))
 
 CFLAGS_SHARED = -shared -fPIC
 ifeq ($(findstring clang,$(CC)),clang)
-CFLAGS_WARNING = -Weverything -Wpedantic
+CFLAGS_WARNING = -Weverything -Wpedantic -Werror
 else
-CFLAGS_WARNING = -Wall -Wextra -Wpedantic
+CFLAGS_WARNING = -Wall -Wextra -Wpedantic -Werror
 endif
 CFLAGS = $(CFLAGS_WARNING) $(EXTRA_CFLAGS) $(OPT_CFLAGS)
 LDFLAGS = $(EXTRA_LDFLAGS) $(OPT_LDFLAGS)
