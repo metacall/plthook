@@ -332,7 +332,7 @@ static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_da
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
 
-#if defined __FreeBSD__
+#if defined __FreeBSD__ && __FreeBSD__ >= 13
         if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
             real_base = info->dlpi_addr + phdr->p_vaddr;
         }
