@@ -250,7 +250,13 @@ static size_t page_size;
 
 static int plthook_open_executable(plthook_t **plthook_out);
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename);
-static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, Elf_Sxword tag);
+
+#if defined __NetBSD__ || defined __OpenBSD__
+typedef Elf_Xword dyn_tag_t;
+#else
+typedef Elf_Sxword dyn_tag_t;
+#endif
+static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, dyn_tag_t tag);
 
 typedef struct mem_prot_iter mem_prot_iter_t;
 static int mem_prot_begin(mem_prot_iter_t *iter);
@@ -666,7 +672,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
 #endif
 }
 
-static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, Elf_Sxword tag)
+static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, dyn_tag_t tag)
 {
     while (dyn->d_tag != DT_NULL) {
         if (dyn->d_tag == tag) {
