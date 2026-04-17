@@ -258,27 +258,9 @@ static void hook_function_calls_in_executable(enum open_mode open_mode)
         CHK_PH(plthook_replace(plthook, "strtod_cdecl", cast.ptr, (void**)&strtod_cdecl_old_func));
     }
 #if defined(_WIN32)
-    {
-        union {
-            double (*fp)(const char *, char**);
-            void *ptr;
-        } cast = { &strtod_stdcall_hook_func };
-        CHK_PH(plthook_replace(plthook, "strtod_stdcall", cast.ptr, (void**)&strtod_stdcall_old_func));
-    }
-    {
-        union {
-            double (*fp)(const char *, char**);
-            void *ptr;
-        } cast = { &strtod_fastcall_hook_func };
-        CHK_PH(plthook_replace(plthook, "strtod_fastcall", cast.ptr, (void**)&strtod_fastcall_old_func));
-    }
-    {
-        union {
-            double (*fp)(const char *, char**);
-            void *ptr;
-        } cast = { &strtod_export_by_ordinal_hook_func };
-        CHK_PH(plthook_replace(plthook, "libtest.dll:@10", cast.ptr, (void**)&strtod_export_by_ordinal_old_func));
-    }
+    CHK_PH(plthook_replace(plthook, "strtod_stdcall", (void*)strtod_stdcall_hook_func, (void**)&strtod_stdcall_old_func));
+    CHK_PH(plthook_replace(plthook, "strtod_fastcall", (void*)strtod_fastcall_hook_func, (void**)&strtod_fastcall_old_func));
+    CHK_PH(plthook_replace(plthook, "libtest.dll:@10", (void*)strtod_export_by_ordinal_hook_func, (void**)&strtod_export_by_ordinal_old_func));
 #endif
     plthook_close(plthook);
 }
