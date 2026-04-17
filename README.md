@@ -73,6 +73,8 @@ entry is resolved.
 
 ## Changes
 
+[TODO: Update it]
+
 **2025-05-14:** Add support again for macOS 10.14 Mojave or before.
 
 **2025-05-09:** Add loongarch64 support. (plthook_elf.c)
@@ -245,13 +247,13 @@ void print_plt_entries(const char *filename)
 | Windows 32-bit and x64 (MSVC)                                         | plthook_win32.c | tested using [github actions]             |
 | macOS (intel)                                                         | plthook_osx.c   | tested using [github actions]             |
 | macOS (arm)                                                           | plthook_osx.c   | tested using [github actions]             |
-| Windows 32-bit and x64 (Mingw32 and Cygwin)                           | plthook_win32.c | perhaps(\*2)                              |
+| Windows 32-bit and x64 (Mingw32 and Cygwin)                           | plthook_win32.c | tested using [github actions]             |
 | Solaris x86_64                                                        | plthook_elf.c   | perhaps(\*1)                              |
-| FreeBSD i386 and x86_64 except i386 program on x86_64 OS              | plthook_elf.c   | perhaps(\*1)                              |
-| Android(\*3)                                                          | plthook_elf.c   | perhaps(\*2)                              |
+| FreeBSD, NetBSD, OpenBSD(\*2) x86_64 and arm64                        | plthook_elf.c   | tested using [github actions]             |
+| Android(\*3)                                                          | plthook_elf.c   | tested using [github actions]             |
 
-*1 Tested on a local VM before.  
-*2 Tested on travis-ci.org before.  
+*1 Tested on a local VM before.
+*2 [OpenBSD is not fully working](https://github.com/metacall/plthook/issues/21).
 \*3 Contributed by [Daniel Deptford][].
 
 [QEMU]: http://www.qemu.org/
