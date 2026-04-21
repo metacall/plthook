@@ -1047,7 +1047,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         const Elf_Dyn *dbg = lmap->l_ld;
         int i;
         fprintf(stderr, "DEBUG find_dyn_by_tag start: lmap->l_ld=%p\n", (void*)lmap->l_ld);
-        for (i = 0; i < 5 && dbg->d_tag != DT_NULL; i++, dbg++) {
+        for (i = 0; i < 30 && dbg->d_tag != DT_NULL; i++, dbg++) {
             fprintf(stderr, "DEBUG dyn[%d]: tag=%ld (0x%lx)\n", i, (long)dbg->d_tag, (unsigned long)dbg->d_tag);
         }
     }
