@@ -937,6 +937,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     if (page_size == 0) {
         page_size = sysconf(_SC_PAGESIZE);
     }
+    fprintf(stderr, "DEBUG plthook_open_real: l_name='%s', l_addr=%p, l_ld=%p\n", lmap->l_name, (void*)lmap->l_addr, (void*)lmap->l_ld);
 
 #if defined __linux__
     plthook.plt_addr_base = (char*)lmap->l_addr;
