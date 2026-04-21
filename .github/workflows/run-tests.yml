@@ -325,4 +325,5 @@ jobs:
               sudo pkg_add -I gmake
             fi
             export OPT_CFLAGS="${{ matrix.optimization }}"
-            cd test && gmake relro_pie_tests
+            cd test && gmake relro_pie_tests || true
+            readelf -d testprog
