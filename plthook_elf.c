@@ -671,9 +671,9 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         dlclose(hndl);
         return PLTHOOK_FILE_NOT_FOUND;
     }
-    fprintf(stderr, "DEBUG BEFORE dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)lmap->l_ld->d_tag);
+    fprintf(stderr, "DEBUG BEFORE dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)((const Elf_Dyn*)lmap->l_ld)->d_tag);
     dlclose(hndl);
-    fprintf(stderr, "DEBUG AFTER dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)lmap->l_ld->d_tag);
+    fprintf(stderr, "DEBUG AFTER dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)((const Elf_Dyn*)lmap->l_ld)->d_tag);
     return plthook_open_real(plthook_out, lmap);
 #endif
 }
