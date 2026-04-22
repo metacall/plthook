@@ -671,7 +671,9 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         dlclose(hndl);
         return PLTHOOK_FILE_NOT_FOUND;
     }
+    fprintf(stderr, "DEBUG BEFORE dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)lmap->l_ld->d_tag);
     dlclose(hndl);
+    fprintf(stderr, "DEBUG AFTER dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)lmap->l_ld->d_tag);
     return plthook_open_real(plthook_out, lmap);
 #endif
 }
@@ -937,7 +939,6 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     if (page_size == 0) {
         page_size = sysconf(_SC_PAGESIZE);
     }
-    fprintf(stderr, "DEBUG plthook_open_real: l_name='%s', l_addr=%p, l_ld=%p\n", lmap->l_name, (void*)lmap->l_addr, (void*)lmap->l_ld);
 
 #if defined __linux__
     plthook.plt_addr_base = (char*)lmap->l_addr;
