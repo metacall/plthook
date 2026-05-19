@@ -1060,7 +1060,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + dyn->d_un.d_ptr);
         dyn = find_dyn_by_tag(lmap->l_ld, DT_PLTRELSZ);
         printf("DT_JMPREL: base=%#lx d_ptr=%#lx rela_plt=%p\n",
-       (unsigned long)base,
+       (unsigned long)dyn_addr_base,
        (unsigned long)dyn->d_un.d_ptr,
        (void*)plthook.rela_plt);
         if (dyn == NULL) {
