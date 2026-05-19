@@ -293,7 +293,7 @@ jobs:
         architecture:
           - x86-64
           - arm64
-        optimization: ["", "-O2"]
+        optimization: ["", "-O2", "-O3"]
 
     steps:
       - uses: actions/checkout@v4
