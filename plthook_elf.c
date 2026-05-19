@@ -680,9 +680,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
 static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, dyn_tag_t tag)
 {
     while (dyn->d_tag != DT_NULL) {
-        printf("dyn->d_tag: %" ELF_SXWORD_FMT "\n", (Elf_Sxword)dyn->d_tag);
         if (dyn->d_tag == tag) {
-            printf("Found dyn with tag: %" ELF_SXWORD_FMT "\n", (Elf_Sxword)dyn->d_tag);
             return dyn;
         }
         dyn++;
@@ -1003,7 +1001,6 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     if (rv_ != 0) {
         return rv_;
     }
-    printf("ehdr->e_type=%d ET_DYN=%d ET_EXEC=%d\n",ehdr->e_type,ET_DYN,ET_EXEC);
     if (ehdr->e_type == ET_DYN) {
         dyn_addr_base = (uintptr_t)lmap->l_addr;
         plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
@@ -1046,24 +1043,11 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         return PLTHOOK_INTERNAL_ERROR;
     }
     plthook.dynstr_size = dyn->d_un.d_val;
-    // {
-    //     const Elf_Dyn *dbg = lmap->l_ld;
-    //     int i;
-    //     fprintf(stderr, "DEBUG find_dyn_by_tag start: lmap->l_ld=%p\n", (void*)lmap->l_ld);
-    //     for (i = 0; i < 30 && dbg->d_tag != DT_NULL; i++, dbg++) {
-    //         fprintf(stderr, "DEBUG dyn[%d]: tag=%ld (0x%lx)\n", i, (long)dbg->d_tag, (unsigned long)dbg->d_tag);
-    //     }
-    // }
     /* Get .rela.plt or .rel.plt section */
-    printf("lmap->l_ld: %p\n", (void*)lmap->l_ld);
     dyn = find_dyn_by_tag(lmap->l_ld, DT_JMPREL);
     if (dyn != NULL) {
         plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
         dyn = find_dyn_by_tag(lmap->l_ld, DT_PLTRELSZ);
-        printf("DT_JMPREL: base=%#lx d_ptr=%#lx rela_plt=%p\n",
-       (unsigned long)dyn_addr_base,
-       (unsigned long)dyn->d_un.d_ptr,
-       (void*)plthook.rela_plt);
         if (dyn == NULL) {
             set_errmsg("failed to find DT_PLTRELSZ");
             return PLTHOOK_INTERNAL_ERROR;
@@ -1078,10 +1062,6 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 
         plthook.rela_dyn = (const Elf_Plt_Rel *)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
         dyn = find_dyn_by_tag(lmap->l_ld, PLT_DT_RELSZ);
-        printf("PLT_DT_REL: dyn_addr_base=%#lx d_ptr=%#lx rela_dyn=%p\n",
-           (unsigned long)dyn_addr_base,
-           (unsigned long)dyn->d_un.d_ptr,
-           (void*)plthook.rela_dyn);
         if (dyn == NULL) {
             set_errmsg("failed to find PLT_DT_RELSZ");
             return PLTHOOK_INTERNAL_ERROR;

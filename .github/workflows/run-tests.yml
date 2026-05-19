@@ -326,4 +326,3 @@ jobs:
             fi
             export OPT_CFLAGS="${{ matrix.optimization }}"
             cd test && gmake relro_pie_tests
-            readelf -d testprog
