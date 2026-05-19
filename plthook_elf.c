@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 #include <limits.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -238,7 +239,7 @@ struct plthook {
     const Elf_Sym *dynsym;
     const char *dynstr;
     size_t dynstr_size;
-    const char *plt_addr_base;
+    uintptr_t plt_addr_base;
     const Elf_Plt_Rel *rela_plt;
     size_t rela_plt_cnt;
 #ifdef R_GLOBAL_DATA
@@ -934,22 +935,22 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 {
     plthook_t plthook = {0};
     const Elf_Dyn *dyn;
-    const char *dyn_addr_base = NULL;
+    uintptr_t dyn_addr_base = 0;
 
     if (page_size == 0) {
         page_size = sysconf(_SC_PAGESIZE);
     }
 
 #if defined __linux__
-    plthook.plt_addr_base = (char*)lmap->l_addr;
+    plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
 #if defined __riscv
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
     if (ehdr->e_type == ET_DYN) {
-        dyn_addr_base = (const char*)lmap->l_addr;
+        dyn_addr_base = (uintptr_t)lmap->l_addr;
     }
 #endif
 #if defined __ANDROID__ || defined __UCLIBC__
-    dyn_addr_base = (const char*)lmap->l_addr;
+    dyn_addr_base = (uintptr_t)lmap->l_addr;
 #endif
 #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
 #if defined __NetBSD__
@@ -1004,8 +1005,8 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     }
     printf("ehdr->e_type=%d ET_DYN=%d ET_EXEC=%d\n",ehdr->e_type,ET_DYN,ET_EXEC);
     if (ehdr->e_type == ET_DYN) {
-        dyn_addr_base = (const char*)lmap->l_addr;
-        plthook.plt_addr_base = (const char*)lmap->l_addr;
+        dyn_addr_base = (uintptr_t)lmap->l_addr;
+        plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
     }
 #else
 #error unsupported OS
@@ -1017,7 +1018,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         set_errmsg("failed to find DT_SYMTAB");
         return PLTHOOK_INTERNAL_ERROR;
     }
-    plthook.dynsym = (const Elf_Sym*)(dyn_addr_base + dyn->d_un.d_ptr);
+    plthook.dynsym = (const Elf_Sym*)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
 
     /* Check sizeof(Elf_Sym) */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_SYMENT);
@@ -1036,7 +1037,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         set_errmsg("failed to find DT_STRTAB");
         return PLTHOOK_INTERNAL_ERROR;
     }
-    plthook.dynstr = dyn_addr_base + dyn->d_un.d_ptr;
+    plthook.dynstr = (const char *)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
 
     /* Get .dynstr size */
     dyn = find_dyn_by_tag(lmap->l_ld, DT_STRSZ);
@@ -1057,7 +1058,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     printf("lmap->l_ld: %p\n", (void*)lmap->l_ld);
     dyn = find_dyn_by_tag(lmap->l_ld, DT_JMPREL);
     if (dyn != NULL) {
-        plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + dyn->d_un.d_ptr);
+        plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
         dyn = find_dyn_by_tag(lmap->l_ld, DT_PLTRELSZ);
         printf("DT_JMPREL: base=%#lx d_ptr=%#lx rela_plt=%p\n",
        (unsigned long)dyn_addr_base,
@@ -1075,10 +1076,10 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     if (dyn != NULL) {
         size_t total_size, elem_size;
 
-        plthook.rela_dyn = (const Elf_Plt_Rel *)(dyn_addr_base + dyn->d_un.d_ptr);
+        plthook.rela_dyn = (const Elf_Plt_Rel *)(dyn_addr_base + (uintptr_t)dyn->d_un.d_ptr);
         dyn = find_dyn_by_tag(lmap->l_ld, PLT_DT_RELSZ);
-        printf("PLT_DT_REL: dyn_addr_base=%p d_ptr=%#lx rela_dyn=%p\n",
-           (void*)dyn_addr_base,
+        printf("PLT_DT_REL: dyn_addr_base=%#lx d_ptr=%#lx rela_dyn=%p\n",
+           (unsigned long)dyn_addr_base,
            (unsigned long)dyn->d_un.d_ptr,
            (void*)plthook.rela_dyn);
         if (dyn == NULL) {
@@ -1227,7 +1228,7 @@ static int check_rel(const plthook_t *plthook, const Elf_Plt_Rel *plt, Elf_Xword
             return PLTHOOK_INVALID_FILE_FORMAT;
         }
         *name_out = plthook->dynstr + idx;
-        *addr_out = (void**)(plthook->plt_addr_base + plt->r_offset);
+        *addr_out = (void**)(plthook->plt_addr_base + (uintptr_t)plt->r_offset);
         DEBUG_MSG("%s (%p)\n", *name_out, (void *)(*addr_out));
         return 0;
     }
