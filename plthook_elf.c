@@ -671,9 +671,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         dlclose(hndl);
         return PLTHOOK_FILE_NOT_FOUND;
     }
-    fprintf(stderr, "DEBUG BEFORE dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)((const Elf_Dyn*)lmap->l_ld)->d_tag);
     dlclose(hndl);
-    fprintf(stderr, "DEBUG AFTER dlclose: l_ld=%p, first_tag=%ld\n", (void*)lmap->l_ld, (long)((const Elf_Dyn*)lmap->l_ld)->d_tag);
     return plthook_open_real(plthook_out, lmap);
 #endif
 }
@@ -1053,6 +1051,7 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     //     }
     // }
     /* Get .rela.plt or .rel.plt section */
+    printf("lmap->l_ld: %p\n", (void*)lmap->l_ld);
     dyn = find_dyn_by_tag(lmap->l_ld, DT_JMPREL);
     if (dyn != NULL) {
         plthook.rela_plt = (const Elf_Plt_Rel *)(dyn_addr_base + dyn->d_un.d_ptr);
