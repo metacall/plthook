@@ -681,6 +681,7 @@ static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, dyn_tag_t tag)
     while (dyn->d_tag != DT_NULL) {
         printf("dyn->d_tag: %" ELF_SXWORD_FMT "\n", (Elf_Sxword)dyn->d_tag);
         if (dyn->d_tag == tag) {
+            printf("Found dyn with tag: %" ELF_SXWORD_FMT "\n", (Elf_Sxword)dyn->d_tag);
             return dyn;
         }
         dyn++;
