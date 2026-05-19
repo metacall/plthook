@@ -31,4 +31,3 @@ run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_
 run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_handle"
 
 echo "All Android tests passed!"
-
