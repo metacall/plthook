@@ -293,6 +293,7 @@ jobs:
         architecture:
           - x86-64
           - arm64
+        optimization: ["", "-O2", "-O3"]
 
     steps:
       - uses: actions/checkout@v4
@@ -323,4 +324,5 @@ jobs:
             elif [ "$OS" = "OpenBSD" ]; then
               sudo pkg_add -I gmake
             fi
+            export OPT_CFLAGS="${{ matrix.optimization }}"
             cd test && gmake relro_pie_tests
