@@ -224,6 +224,13 @@
 #endif
 #endif /* __LP64__ */
 
+#ifdef __HAIKU__
+struct link_map {
+    uintptr_t l_addr;
+    Elf_Dyn *l_ld;
+};
+#endif
+
 #ifdef PLTHOOK_DEBUG
 #define DEBUG_MSG(...) fprintf(stderr, __VA_ARGS__)
 #else
