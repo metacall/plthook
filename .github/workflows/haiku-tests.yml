@@ -39,6 +39,17 @@ jobs:
             readelf -d testprog
             echo "=== libtest.so ELF info ==="
             readelf -d libtest.so
+            echo "=== undefined symbols in testprog ==="
+            readelf -Ws testprog | grep UND || true
+            echo "=== relocations mentioning dl_iterate_phdr ==="
+            readelf -r testprog | grep dl_iterate_phdr || true
+            echo "=== runtime libbsd dl_iterate_phdr ==="
+            readelf -Ws /boot/system/lib/libbsd.so | grep dl_iterate_phdr || true
+            readelf -Ws /boot/system/develop/lib/libbsd.so | grep dl_iterate_phdr || true
+            echo "=== direct dl_iterate_phdr runtime test ==="
+            printf '#include <link.h>\nstatic int cb(struct dl_phdr_info *info, size_t size, void *data) { return 0; }\nint main(void) { return dl_iterate_phdr(cb, 0); }\n' > /tmp/dlphdr.c
+            cc /tmp/dlphdr.c -o /tmp/dlphdr -lbsd
+            /tmp/dlphdr || echo "dlphdr exit code: $?"
             echo "=== smoke tests ==="
             LIBRARY_PATH="$(pwd)" ./testprog 2>&1 || echo "no-arg exit code: $?"
             LIBRARY_PATH="$(pwd)" ./testprog open_by_address 2>&1 || echo "open_by_address exit code: $?"
