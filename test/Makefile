@@ -55,6 +55,13 @@ ifeq ($(UNAME_S),OpenBSD)
   CFLAGS_WARNING += -Werror
 endif
 
+ifeq ($(UNAME_S),Haiku)
+  # Haiku
+  TESTS = relro_pie_tests
+  LIBS = -lm
+  CFLAGS_WARNING += -Werror
+endif
+
 ifneq (,$(findstring MINGW,$(UNAME_S)))
   # Mingw
   CFLAGS_SHARED = -shared
