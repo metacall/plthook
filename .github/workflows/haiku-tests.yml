@@ -33,9 +33,13 @@ jobs:
           run: |
             export OPT_CFLAGS="${{ matrix.optimization }} -DPLTHOOK_DEBUG"
             cd test && make clean libtest.so testprog
-            ls -la /boot/system/lib/libbsd* || echo "libbsd not in system lib"
-            find /boot -name "libbsd.so" 2>/dev/null || echo "libbsd.so not found"
-            echo 'int main(){return 0;}' > /tmp/hello.c
-            cc /tmp/hello.c -o /tmp/hello -lbsd && /tmp/hello && echo "minimal libbsd test OK" || echo "minimal libbsd test FAILED: $?"
-            echo "--- attempting testprog ---"
+            echo "=== testprog ELF info ==="
+            readelf -h testprog
+            readelf -l testprog
+            readelf -d testprog
+            echo "=== libtest.so ELF info ==="
+            readelf -d libtest.so
+            echo "=== check libm ==="
+            ls -la /boot/system/lib/libm* 2>/dev/null || echo "no libm in system lib"
+            echo "=== run testprog ==="
             LIBRARY_PATH="$(pwd)" ./testprog open 2>&1 || echo "exit code: $?"
