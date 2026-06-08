@@ -327,6 +327,46 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 }
 #endif
 
+#if defined __HAIKU__
+static int dl_iterate_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
+    Elf_Half idx;
+    size_t load_bias = 0;
+
+    (void)size;
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
+            load_bias = (size_t)info->dlpi_addr - phdr->p_vaddr;
+            break;
+        }
+    }
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        char *base = (char*)(load_bias + phdr->p_vaddr);
+        if (base <= data->addr && data->addr < base + phdr->p_memsz)
+            break;
+    }
+
+    if (idx == info->dlpi_phnum)
+        return 0;
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_DYNAMIC) {
+            data->lmap.l_addr = load_bias;
+            data->lmap.l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+#endif
+
 #if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 static int dl_iterate_cb_bsd(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
@@ -575,6 +615,15 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
         return PLTHOOK_INTERNAL_ERROR;
     }
 
+    return plthook_open_real(plthook_out, &data.lmap);
+#elif defined __HAIKU__
+    struct dl_iterate_data data = {0,};
+    data.addr = address;
+    dl_iterate_phdr(dl_iterate_cb_haiku, &data);
+    if (data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find memory region containing address %p", address);
+        return PLTHOOK_INTERNAL_ERROR;
+    }
     return plthook_open_real(plthook_out, &data.lmap);
 #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     struct dl_iterate_data data = {0,};
