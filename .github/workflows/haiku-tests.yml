@@ -33,4 +33,4 @@ jobs:
           run: |
             export OPT_CFLAGS="${{ matrix.optimization }} -DPLTHOOK_DEBUG"
             cd test && make clean libtest.so testprog
-            LD_LIBRARY_PATH=. ./testprog open 2>&1 || echo "exit code: $?"
+            LIBRARY_PATH=. LD_LIBRARY_PATH=. ./testprog open 2>&1 || echo "exit code: $?"
