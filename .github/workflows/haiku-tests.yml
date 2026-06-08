@@ -39,7 +39,8 @@ jobs:
             readelf -d testprog
             echo "=== libtest.so ELF info ==="
             readelf -d libtest.so
-            echo "=== check libm ==="
-            ls -la /boot/system/lib/libm* 2>/dev/null || echo "no libm in system lib"
-            echo "=== run testprog ==="
-            LIBRARY_PATH="$(pwd)" ./testprog open 2>&1 || echo "exit code: $?"
+            echo "=== smoke tests ==="
+            LIBRARY_PATH="$(pwd)" ./testprog 2>&1 || echo "no-arg exit code: $?"
+            LIBRARY_PATH="$(pwd)" ./testprog open_by_address 2>&1 || echo "open_by_address exit code: $?"
+            LIBRARY_PATH="$(pwd)" ./testprog open_by_handle 2>&1 || echo "open_by_handle exit code: $?"
+            LIBRARY_PATH="$(pwd)" ./testprog open 2>&1 || echo "open exit code: $?"
