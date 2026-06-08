@@ -281,7 +281,7 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __HAIKU__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
@@ -1097,8 +1097,17 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
     }
 #elif defined __HAIKU__
-    dyn_addr_base = (uintptr_t)lmap->l_addr;
-    plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
+    {
+        const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
+        int rv_ = check_elf_header(ehdr);
+        if (rv_ != 0) {
+            return rv_;
+        }
+        if (ehdr->e_type == ET_DYN) {
+            dyn_addr_base = (uintptr_t)lmap->l_addr;
+            plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
+        }
+    }
 #else
 #error unsupported OS
 #endif
@@ -1243,7 +1252,7 @@ static int plthook_get_mem_prot(plthook_t *plthook, void *addr)
     return 0;
 }
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __HAIKU__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr)
 {
     static const unsigned short s = 1;
