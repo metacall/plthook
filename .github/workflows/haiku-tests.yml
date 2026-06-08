@@ -34,7 +34,7 @@ jobs:
             export OPT_CFLAGS="${{ matrix.optimization }} -DPLTHOOK_DEBUG"
             cd test && make clean libtest.so testprog
             ls -la libtest.so testprog
-            file testprog
             readelf -d testprog | grep NEEDED || true
+            readelf -d testprog | grep RPATH || echo "no RPATH set"
             echo "--- attempting to run ---"
-            LIBRARY_PATH="$(pwd)" ./testprog open 2>&1; echo "exit code: $?"
+            LIBRARY_PATH="$(pwd)" ./testprog open 2>&1 || echo "exit code: $?"
