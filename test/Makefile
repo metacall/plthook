@@ -61,7 +61,7 @@ ifeq ($(UNAME_S),Haiku)
   TESTS = relro_pie_tests
   LIBS = -lm -lbsd
   LDFLAGS += -Wl,-rpath,.
-  LIBPATH_ENV = LIBRARY_PATH=.
+  LIBPATH_ENV =
   CFLAGS_WARNING += -Werror
 endif
 

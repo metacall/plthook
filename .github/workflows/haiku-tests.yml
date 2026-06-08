@@ -33,27 +33,7 @@ jobs:
           run: |
             export OPT_CFLAGS="${{ matrix.optimization }} -DPLTHOOK_DEBUG"
             cd test && make clean libtest.so testprog
-            echo "=== testprog ELF info ==="
-            readelf -h testprog
-            readelf -l testprog
-            readelf -d testprog
-            echo "=== libtest.so ELF info ==="
-            readelf -d libtest.so
-            echo "=== undefined symbols in testprog ==="
-            readelf -Ws testprog | grep UND || true
-            echo "=== relocations mentioning dl_iterate_phdr ==="
-            readelf -r testprog | grep dl_iterate_phdr || true
-            echo "=== runtime libbsd dl_iterate_phdr ==="
-            readelf -Ws /boot/system/lib/libbsd.so | grep dl_iterate_phdr || true
-            readelf -Ws /boot/system/develop/lib/libbsd.so | grep dl_iterate_phdr || true
-            echo "=== direct dl_iterate_phdr runtime test ==="
-            printf '#include <link.h>\nstatic int cb(struct dl_phdr_info *info, size_t size, void *data) { return 0; }\nint main(void) { return dl_iterate_phdr(cb, 0); }\n' > /tmp/dlphdr.c
-            cc /tmp/dlphdr.c -o /tmp/dlphdr -lbsd
-            /tmp/dlphdr || echo "dlphdr exit code: $?"
-            echo "=== LIBRARY_PATH theory test ==="
-            echo "test 1: no LIBRARY_PATH (RPATH . should find libtest.so)"
-            ./testprog open 2>&1 || echo "no-LIBRARY_PATH exit code: $?"
-            echo "test 2: LIBRARY_PATH with system libs included"
-            LIBRARY_PATH="$(pwd):/boot/system/lib" ./testprog open 2>&1 || echo "with-syslibs exit code: $?"
-            echo "test 3: LIBRARY_PATH=$(pwd) only (current broken approach)"
-            LIBRARY_PATH="$(pwd)" ./testprog open 2>&1 || echo "pwd-only exit code: $?"
+            echo "===  tests ==="
+            ./testprog open 2>&1 || echo "open exit code: $?"
+            ./testprog open_by_handle 2>&1 || echo "open_by_handle exit code: $?"
+            ./testprog open_by_address 2>&1 || echo "open_by_address exit code: $?"
