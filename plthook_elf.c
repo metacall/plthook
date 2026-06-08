@@ -68,6 +68,9 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
 #include <elf.h>
 #if defined __OpenBSD__ && (defined __aarch64__ || defined __aarch64)
 #define R_AARCH64_GLOB_DAT 1025
@@ -76,7 +79,7 @@
 #include <link.h>
 #include "plthook.h"
 
-#if defined __UCLIBC__ && !defined RTLD_NOLOAD
+#if (defined __UCLIBC__ || defined __HAIKU__) && !defined RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif
 
@@ -276,7 +279,7 @@ static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __HAIKU__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
