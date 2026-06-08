@@ -703,7 +703,7 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
-#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __HAIKU__
     return plthook_open_shared_library(plthook_out, NULL);
 #endif
 }
@@ -711,7 +711,7 @@ static int plthook_open_executable(plthook_t **plthook_out)
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
 {
     void *hndl = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __HAIKU__ || defined __OpenBSD__
     int rv;
 #else
     struct link_map *lmap = NULL;
@@ -721,7 +721,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         set_errmsg("dlopen error: %s", dlerror());
         return PLTHOOK_FILE_NOT_FOUND;
     }
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __HAIKU__ || defined __OpenBSD__
     rv = plthook_open_by_handle(plthook_out, hndl);
     dlclose(hndl);
     return rv;
