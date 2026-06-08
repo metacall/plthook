@@ -612,7 +612,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
-#elif defined __UCLIBC__ || defined __OpenBSD__
+#elif defined __UCLIBC__ || defined __HAIKU__ || defined __OpenBSD__
     static const char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
@@ -750,8 +750,9 @@ static int plthook_open_executable(plthook_t **plthook_out)
     return plthook_open_real(plthook_out, r_debug->r_map);
 #elif defined __HAIKU__
     {
+        static int dummy;
         struct dl_iterate_data data = {0,};
-        data.addr = (char*)&plthook_open_executable;
+        data.addr = (char*)&dummy;
         dl_iterate_phdr(dl_iterate_cb_haiku, &data);
         if (data.lmap.l_ld == NULL) {
             set_errmsg("Could not find executable via dl_iterate_phdr");
