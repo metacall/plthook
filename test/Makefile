@@ -58,7 +58,7 @@ endif
 ifeq ($(UNAME_S),Haiku)
   # Haiku
   TESTS = relro_pie_tests
-  LIBS = -lm
+  LIBS = -ldl -lm
   CFLAGS_WARNING += -Werror
 endif
 
