@@ -527,7 +527,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
-#elif defined __UCLIBC__ || defined __OpenBSD__
+#elif defined __UCLIBC__ || defined __HAIKU__ || defined __OpenBSD__
     static const char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
