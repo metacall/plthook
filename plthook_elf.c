@@ -984,6 +984,38 @@ static void mem_prot_end(mem_prot_iter_t *iter)
         fclose(iter->fp);
     }
 }
+#elif defined __HAIKU__
+struct mem_prot_iter {
+    ssize_t cookie;
+};
+
+static int mem_prot_begin(mem_prot_iter_t *iter)
+{
+    iter->cookie = 0;
+    return 0;
+}
+
+static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
+{
+    area_info info;
+    if (get_next_area_info(B_CURRENT_TEAM, &iter->cookie, &info) != B_OK)
+        return -1;
+    mem_prot->start = (size_t)info.address;
+    mem_prot->end = (size_t)info.address + info.size;
+    mem_prot->prot = 0;
+    if (info.protection & B_READ_AREA)
+        mem_prot->prot |= PROT_READ;
+    if (info.protection & B_WRITE_AREA)
+        mem_prot->prot |= PROT_WRITE;
+    if (info.protection & B_EXECUTE_AREA)
+        mem_prot->prot |= PROT_EXEC;
+    return 0;
+}
+
+static void mem_prot_end(mem_prot_iter_t *iter)
+{
+    (void)iter;
+}
 #else
 #error Unsupported platform
 #endif
@@ -1064,6 +1096,9 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         dyn_addr_base = (uintptr_t)lmap->l_addr;
         plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
     }
+#elif defined __HAIKU__
+    dyn_addr_base = (uintptr_t)lmap->l_addr;
+    plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
 #else
 #error unsupported OS
 #endif
