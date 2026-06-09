@@ -665,11 +665,22 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 #elif defined __HAIKU__
     {
         struct dl_iterate_handle_data_haiku handle_data = {0,};
+        void *executable_handle;
 
         if (hndl == NULL) {
             set_errmsg("NULL handle");
             return PLTHOOK_FILE_NOT_FOUND;
         }
+
+        executable_handle = dlopen(NULL, RTLD_LAZY);
+        if (executable_handle != NULL) {
+            if (hndl == executable_handle) {
+                dlclose(executable_handle);
+                return plthook_open_executable(plthook_out);
+            }
+            dlclose(executable_handle);
+        }
+
         handle_data.target_handle = hndl;
         dl_iterate_phdr(dl_iterate_handle_cb_haiku, &handle_data);
         if (handle_data.lmap.l_ld == NULL) {
