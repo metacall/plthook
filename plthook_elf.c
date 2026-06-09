@@ -331,37 +331,53 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 #endif
 
 #if defined __HAIKU__
-static int dl_iterate_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+static const char *haiku_basename(const char *path)
 {
-    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
-    Elf_Half idx;
-    size_t load_bias = 0;
+    const char *slash = strrchr(path, '/');
+    return slash != NULL ? slash + 1 : path;
+}
 
-    (void)size;
+static int fill_link_map_haiku(struct dl_phdr_info *info, struct link_map *lmap)
+{
+    Elf_Half idx;
+    uintptr_t load_bias = (uintptr_t)info->dlpi_addr;
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
-            load_bias = (size_t)info->dlpi_addr - phdr->p_vaddr;
+            load_bias = (uintptr_t)info->dlpi_addr - phdr->p_vaddr;
             break;
         }
     }
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        char *base = (char*)(load_bias + phdr->p_vaddr);
-        if (base <= data->addr && data->addr < base + phdr->p_memsz)
-            break;
+        if (phdr->p_type == PT_DYNAMIC) {
+            lmap->l_addr = load_bias;
+            lmap->l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
+            return 1;
+        }
     }
 
-    if (idx == info->dlpi_phnum)
+    return 0;
+}
+
+static int dl_iterate_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
+    Elf_Half idx;
+    struct link_map lmap;
+
+    (void)size;
+
+    if (!fill_link_map_haiku(info, &lmap))
         return 0;
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_DYNAMIC) {
-            data->lmap.l_addr = load_bias;
-            data->lmap.l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
+        char *base = (char*)(lmap.l_addr + phdr->p_vaddr);
+        if (base <= data->addr && data->addr < base + phdr->p_memsz) {
+            data->lmap = lmap;
             return 1;
         }
     }
@@ -377,41 +393,17 @@ struct dl_iterate_name_data {
 static int dl_iterate_name_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
 {
     struct dl_iterate_name_data *data = (struct dl_iterate_name_data*)cb_data;
-    const char *dlpi_name = info->dlpi_name;
-    const char *slash;
-    Elf_Half idx;
-    size_t load_bias = 0;
+    const char *name = info->dlpi_name;
 
     (void)size;
 
-    if (dlpi_name == NULL || dlpi_name[0] == '\0')
+    if (name == NULL || name[0] == '\0')
         return 0;
 
-    slash = strrchr(dlpi_name, '/');
-    if (slash != NULL)
-        dlpi_name = slash + 1;
-
-    if (strcmp(dlpi_name, data->name) != 0)
+    if (strcmp(haiku_basename(name), data->name) != 0)
         return 0;
 
-    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
-        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
-            load_bias = (size_t)info->dlpi_addr - phdr->p_vaddr;
-            break;
-        }
-    }
-
-    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
-        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_DYNAMIC) {
-            data->lmap.l_addr = load_bias;
-            data->lmap.l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
-            return 1;
-        }
-    }
-
-    return 0;
+    return fill_link_map_haiku(info, &data->lmap);
 }
 
 struct dl_iterate_handle_data_haiku {
@@ -423,8 +415,6 @@ static int dl_iterate_handle_cb_haiku(struct dl_phdr_info *info, size_t size, vo
 {
     struct dl_iterate_handle_data_haiku *data = (struct dl_iterate_handle_data_haiku*)cb_data;
     void *test_handle;
-    Elf_Half idx;
-    size_t load_bias = 0;
 
     (void)size;
 
@@ -441,24 +431,7 @@ static int dl_iterate_handle_cb_haiku(struct dl_phdr_info *info, size_t size, vo
     }
     dlclose(test_handle);
 
-    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
-        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
-            load_bias = (size_t)info->dlpi_addr - phdr->p_vaddr;
-            break;
-        }
-    }
-
-    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
-        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_DYNAMIC) {
-            data->lmap.l_addr = load_bias;
-            data->lmap.l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
-            return 1;
-        }
-    }
-
-    return 0;
+    return fill_link_map_haiku(info, &data->lmap);
 }
 #endif
 
@@ -663,32 +636,30 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
 #elif defined __HAIKU__
-    {
-        struct dl_iterate_handle_data_haiku handle_data = {0,};
-        void *executable_handle;
+    struct dl_iterate_handle_data_haiku handle_data = {0,};
+    void *executable_handle;
 
-        if (hndl == NULL) {
-            set_errmsg("NULL handle");
-            return PLTHOOK_FILE_NOT_FOUND;
-        }
-
-        executable_handle = dlopen(NULL, RTLD_LAZY);
-        if (executable_handle != NULL) {
-            if (hndl == executable_handle) {
-                dlclose(executable_handle);
-                return plthook_open_executable(plthook_out);
-            }
-            dlclose(executable_handle);
-        }
-
-        handle_data.target_handle = hndl;
-        dl_iterate_phdr(dl_iterate_handle_cb_haiku, &handle_data);
-        if (handle_data.lmap.l_ld == NULL) {
-            set_errmsg("Could not find library for the specified handle.");
-            return PLTHOOK_INTERNAL_ERROR;
-        }
-        return plthook_open_real(plthook_out, &handle_data.lmap);
+    if (hndl == NULL) {
+        set_errmsg("NULL handle");
+        return PLTHOOK_FILE_NOT_FOUND;
     }
+
+    executable_handle = dlopen(NULL, RTLD_LAZY);
+    if (executable_handle != NULL) {
+        if (hndl == executable_handle) {
+            dlclose(executable_handle);
+            return plthook_open_executable(plthook_out);
+        }
+        dlclose(executable_handle);
+    }
+
+    handle_data.target_handle = hndl;
+    dl_iterate_phdr(dl_iterate_handle_cb_haiku, &handle_data);
+    if (handle_data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find library for the specified handle.");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    return plthook_open_real(plthook_out, &handle_data.lmap);
 #elif defined __UCLIBC__ || defined __OpenBSD__
     static const char *symbols[] = {
         "__INIT_ARRAY__",
@@ -826,17 +797,16 @@ static int plthook_open_executable(plthook_t **plthook_out)
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
 #elif defined __HAIKU__
-    {
-        static int dummy;
-        struct dl_iterate_data data = {0,};
-        data.addr = (char*)&dummy;
-        dl_iterate_phdr(dl_iterate_cb_haiku, &data);
-        if (data.lmap.l_ld == NULL) {
-            set_errmsg("Could not find executable via dl_iterate_phdr");
-            return PLTHOOK_INTERNAL_ERROR;
-        }
-        return plthook_open_real(plthook_out, &data.lmap);
+    static int dummy;
+    struct dl_iterate_data data = {0,};
+
+    data.addr = (char*)&dummy;
+    dl_iterate_phdr(dl_iterate_cb_haiku, &data);
+    if (data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find executable via dl_iterate_phdr");
+        return PLTHOOK_INTERNAL_ERROR;
     }
+    return plthook_open_real(plthook_out, &data.lmap);
 #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     return plthook_open_shared_library(plthook_out, NULL);
 #endif
@@ -846,14 +816,12 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
 {
 #if defined __HAIKU__
     struct dl_iterate_name_data name_data = {0,};
-    const char *slash;
 
     if (filename == NULL) {
         set_errmsg("NULL filename");
         return PLTHOOK_FILE_NOT_FOUND;
     }
-    slash = strrchr(filename, '/');
-    name_data.name = (slash != NULL) ? slash + 1 : filename;
+    name_data.name = haiku_basename(filename);
     dl_iterate_phdr(dl_iterate_name_cb_haiku, &name_data);
     if (name_data.lmap.l_ld == NULL) {
         set_errmsg("Could not find library '%s' via dl_iterate_phdr", filename);
@@ -1249,16 +1217,14 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
         plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
     }
 #elif defined __HAIKU__
-    {
-        const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
-        int rv_ = check_elf_header(ehdr);
-        if (rv_ != 0) {
-            return rv_;
-        }
-        if (ehdr->e_type == ET_DYN) {
-            dyn_addr_base = (uintptr_t)lmap->l_addr;
-            plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
-        }
+    const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
+    int rv_ = check_elf_header(ehdr);
+    if (rv_ != 0) {
+        return rv_;
+    }
+    if (ehdr->e_type == ET_DYN) {
+        dyn_addr_base = (uintptr_t)lmap->l_addr;
+        plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
     }
 #else
 #error unsupported OS
