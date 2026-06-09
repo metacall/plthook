@@ -31,13 +31,5 @@ jobs:
           architecture: x86-64
           shell: sh
           run: |
-            export OPT_CFLAGS="${{ matrix.optimization }} -DPLTHOOK_DEBUG"
-            cd test && make clean libtest.so testprog
-            echo "=== handle debug ==="
-            printf '#include <stdio.h>\n#include <dlfcn.h>\n#include <link.h>\n#ifndef RTLD_NOLOAD\n#define RTLD_NOLOAD 4\n#endif\nstatic int cb(struct dl_phdr_info *info, size_t size, void *data) {\n  void *h;\n  (void)size;\n  printf("name=[%%s]\\n", info->dlpi_name ? info->dlpi_name : "(null)");\n  h = dlopen(info->dlpi_name, RTLD_LAZY | RTLD_NOLOAD);\n  printf("  dlopen handle=%%p target=%%p match=%%d\\n", h, data, h == data);\n  if(h) dlclose(h);\n  return 0;\n}\nint main() {\n  void *h = dlopen("libtest.so", RTLD_LAZY | RTLD_NOLOAD);\n  printf("target handle: %%p\\n", h);\n  dl_iterate_phdr(cb, h);\n  return 0;\n}\n' > /tmp/htest.c
-            cc /tmp/htest.c -o /tmp/htest -lbsd -L. -ltest -Wl,-rpath,.
-            /tmp/htest
-            echo "===  tests ==="
-            ./testprog open 2>&1 || echo "open exit code: $?"
-            ./testprog open_by_handle 2>&1 || echo "open_by_handle exit code: $?"
-            ./testprog open_by_address 2>&1 || echo "open_by_address exit code: $?"
+            export OPT_CFLAGS="${{ matrix.optimization }}"
+            cd test && make check
