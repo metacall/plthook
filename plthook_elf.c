@@ -410,6 +410,53 @@ static int dl_iterate_name_cb_haiku(struct dl_phdr_info *info, size_t size, void
 
     return 0;
 }
+
+struct dl_iterate_handle_data_haiku {
+    void *target_handle;
+    struct link_map lmap;
+};
+
+static int dl_iterate_handle_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_handle_data_haiku *data = (struct dl_iterate_handle_data_haiku*)cb_data;
+    void *test_handle;
+    Elf_Half idx;
+    size_t load_bias = 0;
+
+    (void)size;
+
+    if (info->dlpi_name == NULL || info->dlpi_name[0] == '\0')
+        return 0;
+
+    test_handle = dlopen(info->dlpi_name, RTLD_LAZY | RTLD_NOLOAD);
+    if (test_handle == NULL)
+        return 0;
+
+    if (test_handle != data->target_handle) {
+        dlclose(test_handle);
+        return 0;
+    }
+    dlclose(test_handle);
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
+            load_bias = (size_t)info->dlpi_addr - phdr->p_vaddr;
+            break;
+        }
+    }
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_DYNAMIC) {
+            data->lmap.l_addr = load_bias;
+            data->lmap.l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
+            return 1;
+        }
+    }
+
+    return 0;
+}
 #endif
 
 #if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
@@ -612,7 +659,23 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
-#elif defined __UCLIBC__ || defined __HAIKU__ || defined __OpenBSD__
+#elif defined __HAIKU__
+    {
+        struct dl_iterate_handle_data_haiku handle_data = {0,};
+
+        if (hndl == NULL) {
+            set_errmsg("NULL handle");
+            return PLTHOOK_FILE_NOT_FOUND;
+        }
+        handle_data.target_handle = hndl;
+        dl_iterate_phdr(dl_iterate_handle_cb_haiku, &handle_data);
+        if (handle_data.lmap.l_ld == NULL) {
+            set_errmsg("Could not find library for the specified handle.");
+            return PLTHOOK_INTERNAL_ERROR;
+        }
+        return plthook_open_real(plthook_out, &handle_data.lmap);
+    }
+#elif defined __UCLIBC__ || defined __OpenBSD__
     static const char *symbols[] = {
         "__INIT_ARRAY__",
         "_end",
