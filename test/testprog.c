@@ -287,7 +287,7 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
         handle = GetModuleHandle(filename);
 #else
 #if defined(__HAIKU__) && !defined(RTLD_NOLOAD)
-#define RTLD_NOLOAD 0
+#define RTLD_NOLOAD 4
 #endif
         handle = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
 #endif

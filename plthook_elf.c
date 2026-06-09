@@ -79,7 +79,10 @@
 #include <link.h>
 #include "plthook.h"
 
-#if (defined __UCLIBC__ || defined __HAIKU__) && !defined RTLD_NOLOAD
+#if defined __HAIKU__ && !defined RTLD_NOLOAD
+#define RTLD_NOLOAD 4
+#endif
+#if defined __UCLIBC__ && !defined RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif
 
