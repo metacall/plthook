@@ -70,6 +70,7 @@
 #endif
 #ifdef __HAIKU__
 #include <OS.h>
+#include <image.h>
 #endif
 #include <elf.h>
 #if defined __OpenBSD__ && (defined __aarch64__ || defined __aarch64)
@@ -636,7 +637,7 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
 #elif defined __HAIKU__
-    struct dl_iterate_handle_data_haiku handle_data = {0,};
+    struct dl_iterate_handle_data_haiku handle_data = {0};
     void *executable_handle;
 
     if (hndl == NULL) {
@@ -797,10 +798,24 @@ static int plthook_open_executable(plthook_t **plthook_out)
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
 #elif defined __HAIKU__
-    static int dummy;
     struct dl_iterate_data data = {0,};
+    image_info info;
+    int32 cookie = 0;
+    int found = 0;
 
-    data.addr = (char*)&dummy;
+    /* Anchor on the app image's base address rather than an address in
+     * plthook's own code, which may live in a shared library. */
+    while (get_next_image_info(B_CURRENT_TEAM, &cookie, &info) == B_OK) {
+        if (info.type == B_APP_IMAGE) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        set_errmsg("Could not find the application image");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    data.addr = (char *)info.text;
     dl_iterate_phdr(dl_iterate_cb_haiku, &data);
     if (data.lmap.l_ld == NULL) {
         set_errmsg("Could not find executable via dl_iterate_phdr");
