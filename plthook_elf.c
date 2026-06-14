@@ -332,30 +332,15 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
 #endif
 
 #if defined __HAIKU__
-static const char *haiku_basename(const char *path)
-{
-    const char *slash = strrchr(path, '/');
-    return slash != NULL ? slash + 1 : path;
-}
-
 static int fill_link_map_haiku(struct dl_phdr_info *info, struct link_map *lmap)
 {
     Elf_Half idx;
-    uintptr_t load_bias = (uintptr_t)info->dlpi_addr;
-
-    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
-        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
-        if (phdr->p_type == PT_LOAD && phdr->p_offset == 0) {
-            load_bias = (uintptr_t)info->dlpi_addr - phdr->p_vaddr;
-            break;
-        }
-    }
 
     for (idx = 0; idx < info->dlpi_phnum; ++idx) {
         const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
         if (phdr->p_type == PT_DYNAMIC) {
-            lmap->l_addr = load_bias;
-            lmap->l_ld = (Elf_Dyn*)(load_bias + phdr->p_vaddr);
+            lmap->l_addr = (uintptr_t)info->dlpi_addr;
+            lmap->l_ld = (Elf_Dyn*)((uintptr_t)info->dlpi_addr + phdr->p_vaddr);
             return 1;
         }
     }
@@ -384,27 +369,6 @@ static int dl_iterate_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_
     }
 
     return 0;
-}
-
-struct dl_iterate_name_data {
-    const char *name;
-    struct link_map lmap;
-};
-
-static int dl_iterate_name_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
-{
-    struct dl_iterate_name_data *data = (struct dl_iterate_name_data*)cb_data;
-    const char *name = info->dlpi_name;
-
-    (void)size;
-
-    if (name == NULL || name[0] == '\0')
-        return 0;
-
-    if (strcmp(haiku_basename(name), data->name) != 0)
-        return 0;
-
-    return fill_link_map_haiku(info, &data->lmap);
 }
 
 struct dl_iterate_handle_data_haiku {
@@ -829,23 +793,8 @@ static int plthook_open_executable(plthook_t **plthook_out)
 
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
 {
-#if defined __HAIKU__
-    struct dl_iterate_name_data name_data = {0,};
-
-    if (filename == NULL) {
-        set_errmsg("NULL filename");
-        return PLTHOOK_FILE_NOT_FOUND;
-    }
-    name_data.name = haiku_basename(filename);
-    dl_iterate_phdr(dl_iterate_name_cb_haiku, &name_data);
-    if (name_data.lmap.l_ld == NULL) {
-        set_errmsg("Could not find library '%s' via dl_iterate_phdr", filename);
-        return PLTHOOK_FILE_NOT_FOUND;
-    }
-    return plthook_open_real(plthook_out, &name_data.lmap);
-#else
     void *hndl = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__ || defined __HAIKU__
     int rv;
 #else
     struct link_map *lmap = NULL;
@@ -855,7 +804,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         set_errmsg("dlopen error: %s", dlerror());
         return PLTHOOK_FILE_NOT_FOUND;
     }
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__ || defined __HAIKU__
     rv = plthook_open_by_handle(plthook_out, hndl);
     dlclose(hndl);
     return rv;
@@ -868,7 +817,6 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
     dlclose(hndl);
     return plthook_open_real(plthook_out, lmap);
 #endif
-#endif /* __HAIKU__ */
 }
 
 static const Elf_Dyn *find_dyn_by_tag(const Elf_Dyn *dyn, dyn_tag_t tag)
