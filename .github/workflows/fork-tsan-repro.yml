@@ -1,0 +1,27 @@
+name: Fork Sanitizer Repro
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  fork-repro:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt update
+          sudo apt install -y clang binutils gcc
+
+      - name: Run repro
+        run: |
+          echo "clang baseline"
+          clang -g -o forktest forktest.c ../plthook_elf.c -ldl
+          readelf -r forktest | grep -i fork || echo "(no fork reloc)"
+          ./forktest
