@@ -30,3 +30,8 @@ jobs:
           clang -g -fsanitize=address -o forktest_asan forktest.c ../plthook_elf.c -ldl
           readelf -r forktest_asan | grep -i fork || echo "(no fork reloc)"
           ./forktest_asan || true
+
+          echo "clang + tsan"
+          clang -g -fsanitize=thread -o forktest_tsan forktest.c ../plthook_elf.c -ldl
+          readelf -r forktest_tsan | grep -i fork || echo "(no fork reloc)"
+          ./forktest_tsan || true
