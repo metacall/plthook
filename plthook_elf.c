@@ -68,6 +68,10 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
+#ifdef __HAIKU__
+#include <OS.h>
+#include <image.h>
+#endif
 #include <elf.h>
 #if defined __OpenBSD__ && (defined __aarch64__ || defined __aarch64)
 #define R_AARCH64_GLOB_DAT 1025
@@ -76,6 +80,9 @@
 #include <link.h>
 #include "plthook.h"
 
+#if defined __HAIKU__ && !defined RTLD_NOLOAD
+#define RTLD_NOLOAD 4
+#endif
 #if defined __UCLIBC__ && !defined RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif
@@ -221,6 +228,13 @@
 #endif
 #endif /* __LP64__ */
 
+#ifdef __HAIKU__
+struct link_map {
+    uintptr_t l_addr;
+    Elf_Dyn *l_ld;
+};
+#endif
+
 #ifdef PLTHOOK_DEBUG
 #define DEBUG_MSG(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -271,12 +285,12 @@ static void mem_prot_end(mem_prot_iter_t *iter);
 static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap);
 static int plthook_set_mem_prot(plthook_t *plthook);
 static int plthook_get_mem_prot(plthook_t *plthook, void *addr);
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __HAIKU__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr);
 #endif
 static void set_errmsg(const char *fmt, ...) __attribute__((__format__ (__printf__, 1, 2)));
 
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __HAIKU__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 struct dl_iterate_data {
     char* addr;
     struct link_map lmap;
@@ -314,6 +328,75 @@ static int dl_iterate_cb_android(struct dl_phdr_info *info, size_t size, void *c
     }
 
     return 0;
+}
+#endif
+
+#if defined __HAIKU__
+static int fill_link_map_haiku(struct dl_phdr_info *info, struct link_map *lmap)
+{
+    Elf_Half idx;
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        if (phdr->p_type == PT_DYNAMIC) {
+            lmap->l_addr = (uintptr_t)info->dlpi_addr;
+            lmap->l_ld = (Elf_Dyn*)((uintptr_t)info->dlpi_addr + phdr->p_vaddr);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int dl_iterate_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_data *data = (struct dl_iterate_data*)cb_data;
+    Elf_Half idx;
+    struct link_map lmap;
+
+    (void)size;
+
+    if (!fill_link_map_haiku(info, &lmap))
+        return 0;
+
+    for (idx = 0; idx < info->dlpi_phnum; ++idx) {
+        const Elf_Phdr *phdr = &info->dlpi_phdr[idx];
+        char *base = (char*)(lmap.l_addr + phdr->p_vaddr);
+        if (base <= data->addr && data->addr < base + phdr->p_memsz) {
+            data->lmap = lmap;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+struct dl_iterate_handle_data_haiku {
+    void *target_handle;
+    struct link_map lmap;
+};
+
+static int dl_iterate_handle_cb_haiku(struct dl_phdr_info *info, size_t size, void *cb_data)
+{
+    struct dl_iterate_handle_data_haiku *data = (struct dl_iterate_handle_data_haiku*)cb_data;
+    void *test_handle;
+
+    (void)size;
+
+    if (info->dlpi_name == NULL || info->dlpi_name[0] == '\0')
+        return 0;
+
+    test_handle = dlopen(info->dlpi_name, RTLD_LAZY | RTLD_NOLOAD);
+    if (test_handle == NULL)
+        return 0;
+
+    if (test_handle != data->target_handle) {
+        dlclose(test_handle);
+        return 0;
+    }
+    dlclose(test_handle);
+
+    return fill_link_map_haiku(info, &data->lmap);
 }
 #endif
 
@@ -517,6 +600,31 @@ int plthook_open_by_handle(plthook_t **plthook_out, void *hndl)
     }
 
     return plthook_open_by_address(plthook_out, handle_data.base_addr);
+#elif defined __HAIKU__
+    struct dl_iterate_handle_data_haiku handle_data = {0};
+    void *executable_handle;
+
+    if (hndl == NULL) {
+        set_errmsg("NULL handle");
+        return PLTHOOK_FILE_NOT_FOUND;
+    }
+
+    executable_handle = dlopen(NULL, RTLD_LAZY);
+    if (executable_handle != NULL) {
+        if (hndl == executable_handle) {
+            dlclose(executable_handle);
+            return plthook_open_executable(plthook_out);
+        }
+        dlclose(executable_handle);
+    }
+
+    handle_data.target_handle = hndl;
+    dl_iterate_phdr(dl_iterate_handle_cb_haiku, &handle_data);
+    if (handle_data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find library for the specified handle.");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    return plthook_open_real(plthook_out, &handle_data.lmap);
 #elif defined __UCLIBC__ || defined __OpenBSD__
     static const char *symbols[] = {
         "__INIT_ARRAY__",
@@ -565,6 +673,15 @@ int plthook_open_by_address(plthook_t **plthook_out, void *address)
         return PLTHOOK_INTERNAL_ERROR;
     }
 
+    return plthook_open_real(plthook_out, &data.lmap);
+#elif defined __HAIKU__
+    struct dl_iterate_data data = {0,};
+    data.addr = address;
+    dl_iterate_phdr(dl_iterate_cb_haiku, &data);
+    if (data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find memory region containing address %p", address);
+        return PLTHOOK_INTERNAL_ERROR;
+    }
     return plthook_open_real(plthook_out, &data.lmap);
 #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     struct dl_iterate_data data = {0,};
@@ -644,6 +761,31 @@ static int plthook_open_executable(plthook_t **plthook_out)
         return PLTHOOK_INTERNAL_ERROR;
     }
     return plthook_open_real(plthook_out, r_debug->r_map);
+#elif defined __HAIKU__
+    struct dl_iterate_data data = {0,};
+    image_info info;
+    int32 cookie = 0;
+    int found = 0;
+
+    /* Anchor on the app image's base address rather than an address in
+     * plthook's own code, which may live in a shared library. */
+    while (get_next_image_info(B_CURRENT_TEAM, &cookie, &info) == B_OK) {
+        if (info.type == B_APP_IMAGE) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        set_errmsg("Could not find the application image");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    data.addr = (char *)info.text;
+    dl_iterate_phdr(dl_iterate_cb_haiku, &data);
+    if (data.lmap.l_ld == NULL) {
+        set_errmsg("Could not find executable via dl_iterate_phdr");
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    return plthook_open_real(plthook_out, &data.lmap);
 #elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     return plthook_open_shared_library(plthook_out, NULL);
 #endif
@@ -652,7 +794,7 @@ static int plthook_open_executable(plthook_t **plthook_out)
 static int plthook_open_shared_library(plthook_t **plthook_out, const char *filename)
 {
     void *hndl = dlopen(filename, RTLD_LAZY | RTLD_NOLOAD);
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__ || defined __HAIKU__
     int rv;
 #else
     struct link_map *lmap = NULL;
@@ -662,7 +804,7 @@ static int plthook_open_shared_library(plthook_t **plthook_out, const char *file
         set_errmsg("dlopen error: %s", dlerror());
         return PLTHOOK_FILE_NOT_FOUND;
     }
-#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__
+#if defined __ANDROID__ || defined __UCLIBC__ || defined __OpenBSD__ || defined __HAIKU__
     rv = plthook_open_by_handle(plthook_out, hndl);
     dlclose(hndl);
     return rv;
@@ -925,6 +1067,38 @@ static void mem_prot_end(mem_prot_iter_t *iter)
         fclose(iter->fp);
     }
 }
+#elif defined __HAIKU__
+struct mem_prot_iter {
+    ssize_t cookie;
+};
+
+static int mem_prot_begin(mem_prot_iter_t *iter)
+{
+    iter->cookie = 0;
+    return 0;
+}
+
+static int mem_prot_next(mem_prot_iter_t *iter, mem_prot_t *mem_prot)
+{
+    area_info info;
+    if (get_next_area_info(B_CURRENT_TEAM, &iter->cookie, &info) != B_OK)
+        return -1;
+    mem_prot->start = (size_t)info.address;
+    mem_prot->end = (size_t)info.address + info.size;
+    mem_prot->prot = 0;
+    if (info.protection & B_READ_AREA)
+        mem_prot->prot |= PROT_READ;
+    if (info.protection & B_WRITE_AREA)
+        mem_prot->prot |= PROT_WRITE;
+    if (info.protection & B_EXECUTE_AREA)
+        mem_prot->prot |= PROT_EXEC;
+    return 0;
+}
+
+static void mem_prot_end(mem_prot_iter_t *iter)
+{
+    (void)iter;
+}
 #else
 #error Unsupported platform
 #endif
@@ -997,6 +1171,16 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
 #else
     const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
 #endif
+    int rv_ = check_elf_header(ehdr);
+    if (rv_ != 0) {
+        return rv_;
+    }
+    if (ehdr->e_type == ET_DYN) {
+        dyn_addr_base = (uintptr_t)lmap->l_addr;
+        plthook.plt_addr_base = (uintptr_t)lmap->l_addr;
+    }
+#elif defined __HAIKU__
+    const Elf_Ehdr *ehdr = (const Elf_Ehdr*)lmap->l_addr;
     int rv_ = check_elf_header(ehdr);
     if (rv_ != 0) {
         return rv_;
@@ -1149,7 +1333,7 @@ static int plthook_get_mem_prot(plthook_t *plthook, void *addr)
     return 0;
 }
 
-#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __sun
+#if defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __HAIKU__ || defined __sun
 static int check_elf_header(const Elf_Ehdr *ehdr)
 {
     static const unsigned short s = 1;

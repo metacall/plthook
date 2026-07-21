@@ -22,6 +22,7 @@ LIBS = -ldl -lm
 PLTHOOK_C = plthook_elf.c
 TESTS = run_tests
 KICK_CMD =
+LIBPATH_ENV = LD_LIBRARY_PATH=.
 
 ifeq ($(UNAME_S),Linux)
   # Linux
@@ -52,6 +53,15 @@ ifeq ($(UNAME_S),OpenBSD)
   TESTS = relro_pie_tests
   LIBS = -lm
   LDFLAGS += -Wl,-z,norelro
+  CFLAGS_WARNING += -Werror
+endif
+
+ifeq ($(UNAME_S),Haiku)
+  # Haiku
+  TESTS = relro_pie_tests
+  LIBS = -lm -lbsd
+  LDFLAGS += -Wl,-rpath,.
+  LIBPATH_ENV =
   CFLAGS_WARNING += -Werror
 endif
 
@@ -96,9 +106,9 @@ testprog$(EXEEXT): testprog.c testlazybinding.c ../$(PLTHOOK_C) libtest.h
 	$(CC) $(CFLAGS_EXE) $(CFLAGS) -o testprog$(EXEEXT) -I.. testprog.c testlazybinding.c ../$(PLTHOOK_C) -L. -ltest $(LIBS) $(LDFLAGS)
 
 run_tests: clean libtest.$(SOEXT) testprog$(EXEEXT)
-	LD_LIBRARY_PATH=. $(KICK_CMD) ./testprog$(EXEEXT) open
-	LD_LIBRARY_PATH=. $(KICK_CMD) ./testprog$(EXEEXT) open_by_handle
-	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env LD_LIBRARY_PATH=. $(KICK_CMD) ./testprog$(EXEEXT) open_by_address
+	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open
+	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_handle
+	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env $(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_address
 
 check: $(TESTS)
 
