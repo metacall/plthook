@@ -10,7 +10,7 @@ on:
         required: true
         default: true
       tests_on_ubuntu_tsan_fork:
-        description: 'Tests on Ubuntu Fork (true or false)'
+        description: 'Tests on Ubuntu TSan Fork (true or false)'
         required: true
         default: true
       tests_on_qemu:
@@ -63,8 +63,8 @@ jobs:
         sudo apt install -y libc6-dbg:i386 libgcc-s1:i386
     - name: set OPT_CLFAGS
       run: |
-        echo "CC=\"${{ matrix.compiler }}\"" >> $GITHUB_ENV
-        echo "OPT_CFLAGS=\"${{ matrix.optimization }} ${{ matrix.sanitize }}\"" >> $GITHUB_ENV
+        echo CC="${{ matrix.compiler }}" >> $GITHUB_ENV
+        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
     - name: x86_64
       run: |
         make relro_pie_tests
@@ -85,6 +85,8 @@ jobs:
         ./uclibc-test.sh i686
 
   tests_on_ubuntu_tsan_fork:
+    name: Tests on Ubuntu TSan Fork
+    if: github.event.inputs.tests_on_ubuntu_tsan_fork == 'true' || github.event.inputs.tests_on_ubuntu_tsan_fork == ''
     runs-on: ubuntu-latest
     defaults:
       run:
