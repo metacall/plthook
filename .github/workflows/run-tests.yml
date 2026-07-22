@@ -9,6 +9,10 @@ on:
         description: 'Tests on Ubuntu (true or false)'
         required: true
         default: true
+      tests_on_ubuntu_tsan_fork:
+        description: 'Tests on Ubuntu Fork (true or false)'
+        required: true
+        default: true
       tests_on_qemu:
         description: 'Tests on Qemu (true or false)'
         required: true
@@ -43,6 +47,7 @@ jobs:
       matrix:
         optimization: ["", "-O3"]
         sanitize: ["", "-g -fsanitize=address -fsanitize=undefined"]
+        compiler: ["gcc", "clang"]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,13 +57,14 @@ jobs:
     - name: Install packages
       run: |
         sudo apt update
-        sudo apt install -y gcc-multilib libc6-dbg valgrind
+        sudo apt install -y gcc-multilib libc6-dbg valgrind clang
         sudo dpkg --add-architecture i386
         sudo apt update
         sudo apt install -y libc6-dbg:i386 libgcc-s1:i386
     - name: set OPT_CLFAGS
       run: |
-        echo OPT_CFLAGS="${{ matrix.optimization }} ${{ matrix.sanitize }}" >> $GITHUB_ENV
+        echo "CC=\"${{ matrix.compiler }}\"" >> $GITHUB_ENV
+        echo "OPT_CFLAGS=\"${{ matrix.optimization }} ${{ matrix.sanitize }}\"" >> $GITHUB_ENV
     - name: x86_64
       run: |
         make relro_pie_tests
@@ -77,6 +83,55 @@ jobs:
       if: ${{ matrix.sanitize == '' }} # Run without sanitizers only
       run: |
         ./uclibc-test.sh i686
+
+  tests_on_ubuntu_tsan_fork:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          sudo apt update
+          sudo apt install -y clang binutils gcc
+      - name: Run repro
+        run: |
+          set -exuo pipefail
+
+          echo "gcc + asan"
+          gcc -g -fsanitize=address -o testfork_gcc_asan testfork.c ../plthook_elf.c -ldl
+          readelf -r testfork_gcc_asan | grep -i fork
+          nm -D testfork_gcc_asan | grep -i fork
+          nm testfork_gcc_asan | grep -i fork
+          objdump -d testfork_gcc_asan | grep -A5 -B5 -i fork
+          ./testfork_gcc_asan
+
+          echo "gcc + tsan"
+          gcc -g -fsanitize=thread -o testfork_gcc_tsan testfork.c ../plthook_elf.c -ldl
+          readelf -r testfork_gcc_tsan | grep -i fork
+          nm -D testfork_gcc_tsan | grep -i fork
+          nm testfork_gcc_tsan | grep -i fork
+          objdump -d testfork_gcc_tsan | grep -A5 -B5 -i fork
+          ./testfork_gcc_tsan
+
+          echo "clang baseline"
+          clang -g -o testfork_clang testfork.c ../plthook_elf.c -ldl
+          readelf -r testfork_clang | grep -i fork
+          ./testfork_clang
+
+          echo "clang + asan"
+          clang -g -fsanitize=address -o testfork_clang_asan testfork.c ../plthook_elf.c -ldl
+          readelf -r testfork_clang_asan | grep -i fork
+          ./testfork_clang_asan
+
+          echo "clang + tsan"
+          clang -g -fsanitize=thread -o testfork_clang_tsan testfork.c ../plthook_elf.c -ldl
+          readelf -r testfork_clang_tsan | grep -i fork || echo "(no fork reloc)"
+          nm -D testfork_clang_tsan | grep -i fork
+          nm testfork_clang_tsan | grep -i fork
+          objdump -d testfork_clang_tsan | grep -A5 -B5 -i fork
+          ./testfork_clang_tsan || echo "fork with clang not implemented because it is compiled statically"
 
   tests_on_qemu:
     name: Tests on Qemu (arm, armhf, arm64, ppc, ppc64le, riscv64, s390x and loongarch64)
