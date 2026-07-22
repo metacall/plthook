@@ -34,9 +34,23 @@ jobs:
           echo "clang + tsan"
           clang -g -fsanitize=thread -o forktest_tsan forktest.c ../plthook_elf.c -ldl
           readelf -r forktest_tsan | grep -i fork || echo "(no fork reloc)"
+          nm -D forktest_tsan | grep -i fork || true
+          nm forktest_tsan | grep -i fork || true
+          objdump -d forktest_tsan | grep -A5 -B5 -i fork || true
           ./forktest_tsan || true
 
           echo "gcc + asan"
           gcc -g -fsanitize=address -o forktest_gcc_asan forktest.c ../plthook_elf.c -ldl
           readelf -r forktest_gcc_asan | grep -i fork || echo "(no fork reloc)"
+          nm -D forktest_gcc_asan | grep -i fork || true
+          nm forktest_gcc_asan | grep -i fork || true
+          objdump -d forktest_gcc_asan | grep -A5 -B5 -i fork || true
           ./forktest_gcc_asan || true
+
+          echo "gcc + tsan"
+          gcc -g -fsanitize=thread -o forktest_gcc_tsan forktest.c ../plthook_elf.c -ldl
+          readelf -r forktest_gcc_tsan | grep -i fork || echo "(no fork reloc)"
+          nm -D forktest_gcc_tsan | grep -i fork || true
+          nm forktest_gcc_tsan | grep -i fork || true
+          objdump -d forktest_gcc_tsan | grep -A5 -B5 -i fork || true
+          ./forktest_gcc_tsan || true
