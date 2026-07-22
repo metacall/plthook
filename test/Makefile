@@ -9,11 +9,12 @@ $(info UNAME_S=$(UNAME_S))
 $(info CC=$(CC))
 
 CFLAGS_SHARED = -shared -fPIC
-ifeq ($(findstring clang,$(CC)),clang)
-CFLAGS_WARNING = -Weverything -Wpedantic
-else
+# TODO: Solve issues for -Weverything in Clang
+# ifeq ($(findstring clang,$(CC)),clang)
+# CFLAGS_WARNING = -Weverything -Wpedantic
+# else
 CFLAGS_WARNING = -Wall -Wextra -Wpedantic
-endif
+# endif
 CFLAGS = $(CFLAGS_WARNING) $(EXTRA_CFLAGS) $(OPT_CFLAGS)
 LDFLAGS = $(EXTRA_LDFLAGS) $(OPT_LDFLAGS)
 EXEEXT =

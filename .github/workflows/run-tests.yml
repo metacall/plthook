@@ -34,7 +34,11 @@ on:
         required: true
         default: true
       tests_on_bsd:
-        description: 'Tests on BSD (FreeBSD and NetBSD)'
+        description: 'Tests on FreeBSD and NetBSD (true or false)'
+        required: true
+        default: true
+      tests_on_haiku:
+        description: 'Tests on Haiku (true or false)'
         required: true
         default: true
 
@@ -129,7 +133,7 @@ jobs:
 
           echo "clang + tsan"
           clang -g -fsanitize=thread -o testfork_clang_tsan testfork.c ../plthook_elf.c -ldl
-          readelf -r testfork_clang_tsan | grep -i fork || echo "(no fork reloc)"
+          readelf -r testfork_clang_tsan | grep -i fork
           nm -D testfork_clang_tsan | grep -i fork
           nm testfork_clang_tsan | grep -i fork
           objdump -d testfork_clang_tsan | grep -A5 -B5 -i fork
@@ -334,7 +338,7 @@ jobs:
           script: ./test/android/run_tests.sh
 
   tests_on_bsd:
-    name: Tests on BSD
+    name: Tests on FreeBSD and NetBSD
     if: github.event.inputs.tests_on_bsd == 'true' || github.event.inputs.tests_on_bsd == ''
     runs-on: ubuntu-latest
     strategy:
@@ -354,9 +358,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Test on BSD
-        uses: cross-platform-actions/action@v0.32.0
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: ${{ matrix.os.name }}
           version: ${{ matrix.os.version }}
@@ -383,3 +386,25 @@ jobs:
             fi
             export OPT_CFLAGS="${{ matrix.optimization }}"
             cd test && gmake relro_pie_tests
+
+  tests_on_haiku:
+    name: Tests on Haiku
+    if: github.event.inputs.tests_on_haiku == 'true' || github.event.inputs.tests_on_haiku == ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        optimization: ["", "-O2", "-O3"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test on Haiku
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: haiku
+          version: r1beta5
+          architecture: x86-64
+          shell: sh
+          run: |
+            export OPT_CFLAGS="${{ matrix.optimization }}"
+            cd test && make check
