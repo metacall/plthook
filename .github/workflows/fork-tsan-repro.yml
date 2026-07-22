@@ -21,6 +21,7 @@ jobs:
 
       - name: Run repro
         run: |
+          set -exuo pipefail
           echo "clang baseline"
           clang -g -o forktest forktest.c ../plthook_elf.c -ldl
           readelf -r forktest | grep -i fork || echo "(no fork reloc)"
