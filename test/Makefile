@@ -96,6 +96,7 @@ ifeq ($(UNAME_S),Darwin)
   LIBS = -ldl
   PLTHOOK_C = plthook_osx.c
   CFLAGS_WARNING += -Werror
+  TESTS = run_tests fat_tests
 endif
 
 all: libtest.$(SOEXT) testprog$(EXEEXT)
@@ -112,6 +113,21 @@ run_tests: clean libtest.$(SOEXT) testprog$(EXEEXT)
 	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env $(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_address
 
 check: $(TESTS)
+
+# A universal library puts each slice partway into the file, which is a
+# different path through the chained-fixups reader than a thin one.
+fat_tests:
+	@echo ------------ fat check ------------
+	$(MAKE) clean
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -arch x86_64 -DLIBTEST_DLL -Wl,-install_name,libtest.$(SOEXT) -o libtest.x86_64.$(SOEXT) libtest.c -lm $(LDFLAGS)
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -arch arm64 -DLIBTEST_DLL -Wl,-install_name,libtest.$(SOEXT) -o libtest.arm64.$(SOEXT) libtest.c -lm $(LDFLAGS)
+	lipo -create -output libtest.$(SOEXT) libtest.x86_64.$(SOEXT) libtest.arm64.$(SOEXT)
+	lipo -archs libtest.$(SOEXT)
+	$(CC) $(CFLAGS_EXE) $(CFLAGS) -o testprog$(EXEEXT) -I.. testprog.c testlazybinding.c ../$(PLTHOOK_C) -L. -ltest $(LIBS) $(LDFLAGS)
+	$(LIBPATH_ENV) ./testprog$(EXEEXT) open
+	$(LIBPATH_ENV) ./testprog$(EXEEXT) open_by_handle
+	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env $(LIBPATH_ENV) ./testprog$(EXEEXT) open_by_address
+	$(RM) libtest.x86_64.$(SOEXT) libtest.arm64.$(SOEXT)
 
 relro_pie_tests:
 	@echo ------------ check ------------
@@ -155,4 +171,4 @@ relro_pie_tests_on_valgrind:
 	$(MAKE) run_tests "EXTRA_CFLAGS=-m32 -Wl,-z,relro,-z,now" KICK_CMD=valgrind
 
 clean:
-	$(RM) libtest.$(SOEXT) testprog$(EXEEXT)
+	$(RM) libtest.$(SOEXT) libtest.x86_64.$(SOEXT) libtest.arm64.$(SOEXT) testprog$(EXEEXT)

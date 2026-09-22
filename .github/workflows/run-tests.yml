@@ -230,6 +230,9 @@ jobs:
     - name: Tests
       run: |
         make run_tests
+    - name: Tests on a universal library
+      run: |
+        make fat_tests
 
   tests_on_windows:
     name: Tests on Windows (x86 and x64)
