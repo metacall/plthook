@@ -73,6 +73,11 @@ typedef struct {
     // memory protection information. bitwise-OR of PROT_READ, PROT_WRITE and PROT_EXEC
     int prot;
     char weak;
+    // arm64e: the slot holds a signed pointer, and how it is signed
+    char auth;
+    unsigned char key;
+    unsigned short diversity;
+    char addr_div;
 #endif
 } plthook_entry_t;
 
