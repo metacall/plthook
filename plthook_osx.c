@@ -1111,6 +1111,7 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
     unsigned int pos = 0;
     plthook_entry_t entry;
     int rv;
+    int matches = 0;
 
     if (plthook == NULL) {
         set_errmsg("invalid argument: The first argument is null.");
@@ -1143,7 +1144,10 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
         }
         continue;
 matched:
-        if (oldfunc) {
+        /* A symbol can own more than one slot. Stopping at the first leaves the
+           others pointing at the original, and the call site may use one of them. */
+        matches++;
+        if (oldfunc && matches == 1) {
             *oldfunc = *addr;
         }
         if (!(entry.prot & PROT_WRITE)) {
@@ -1158,6 +1162,8 @@ matched:
         } else {
             *addr = funcaddr;
         }
+    }
+    if (matches > 0) {
         return 0;
     }
     if (rv == EOF) {
