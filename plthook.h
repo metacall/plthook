@@ -59,6 +59,35 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
 void plthook_close(plthook_t *plthook);
 const char *plthook_error(void);
 
+/* Snapshot process memory protection mappings once and reuse them for every
+ * plthook_open*() call until plthook_mem_prot_cache_end() is called.
+ *
+ * Without caching, each plthook_open*() on ELF platforms and macOS scans all
+ * process memory mappings (e.g. /proc/self/maps on Linux, vm_region_64() on
+ * macOS), which is quadratic when opening every loaded object of a process
+ * with many shared libraries.
+ *
+ * Caller requirements while the cache is active:
+ * - Serialize plthook calls (the cache is process-global).
+ * - Do not dlopen()/dlclose() libraries whose GOT/PLT entries will be hooked:
+ *   opening and replacing symbols in a library loaded after
+ *   plthook_mem_prot_cache_begin() fails with PLTHOOK_INTERNAL_ERROR because
+ *   its mappings are absent from the snapshot.
+ * - Do not change GOT/PLT page protections via mprotect(): stale cached
+ *   permissions can cause plthook_replace() to segfault (if a cached writable
+ *   page was made read-only) or restore stale permissions (if a cached
+ *   read-only page was made writable).
+ *
+ * Calling plthook_mem_prot_cache_begin() while already active returns
+ * PLTHOOK_INVALID_ARGUMENT. Calling plthook_mem_prot_cache_end() when inactive
+ * is a no-op.
+ *
+ * On Windows, plthook does not scan process memory maps during
+ * plthook_open*(), so these functions only track active state.
+ */
+int plthook_mem_prot_cache_begin(void);
+void plthook_mem_prot_cache_end(void);
+
 /* enumerate entries with memory protection information (bitwise-OR of PROT_READ, PROT_WRITE and PROT_EXEC)
  *
  * source: plthook_elf.c and plthook_osx.c

@@ -27,7 +27,10 @@ adb push "libs/$ABI/testprog"   /data/local/tmp/
 adb shell chmod 755 /data/local/tmp/libtest.so /data/local/tmp/testprog
 
 run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open"
+run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open --cache"
 run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_address"
+run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_address --cache"
 run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_handle"
+run_on_device "LD_LIBRARY_PATH=/data/local/tmp /data/local/tmp/testprog open_by_handle --cache"
 
 echo "All Android tests passed!"

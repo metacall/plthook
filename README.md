@@ -238,6 +238,24 @@ void print_plt_entries(const char *filename)
 }
 ```
 
+### Caching Memory Protection Mappings
+
+When opening many loaded shared objects in a single pass on ELF platforms or macOS,
+you can snapshot process memory mappings once with `plthook_mem_prot_cache_begin()`
+and release the snapshot with `plthook_mem_prot_cache_end()` to avoid re-scanning
+memory mappings on every `plthook_open*()` call:
+
+```c
+if (plthook_mem_prot_cache_begin() == 0) {
+    /* Call plthook_open*() / plthook_replace() / plthook_close() across loaded objects. */
+    plthook_mem_prot_cache_end();
+}
+```
+
+Calls must be serialized while the cache is active, and the hooked GOT/PLT mappings
+must not be created/removed (`dlopen`/`dlclose`) or re-protected (`mprotect`) while
+the snapshot is in use.
+
 ## Supported Platforms
 
 | Platform                                                              | source file     | status                                    |

@@ -213,7 +213,7 @@ static void test_plthook_enum(plthook_t *plthook, enum_test_data_t *test_data)
 
 static void show_usage(const char *arg0)
 {
-    fprintf(stderr, "Usage: %s (open | open_by_handle | open_by_address)\n", arg0);
+    fprintf(stderr, "Usage: %s (open | open_by_handle | open_by_address) [--cache]\n", arg0);
 }
 
 static void hook_function_calls_in_executable(enum open_mode open_mode)
@@ -318,14 +318,73 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
     plthook_close(plthook);
 }
 
+static void test_mem_prot_cache(void)
+{
+    int rv;
+
+    /* Calling end when inactive must be a safe no-op. */
+    plthook_mem_prot_cache_end();
+
+    CHK_PH(plthook_mem_prot_cache_begin());
+    rv = plthook_mem_prot_cache_begin();
+    if (rv != PLTHOOK_INVALID_ARGUMENT) {
+        fprintf(stderr, "Expected PLTHOOK_INVALID_ARGUMENT on nested begin, got %d\n", rv);
+        exit(1);
+    }
+    plthook_mem_prot_cache_end();
+    plthook_mem_prot_cache_end();
+
+#if !defined(_WIN32)
+    /* Verify plthook_enum_with_prot() yields identical entries with and without the cache. */
+    {
+        plthook_t *ph_uncached = NULL;
+        plthook_t *ph_cached = NULL;
+        unsigned int pos1 = 0;
+        unsigned int pos2 = 0;
+        const char *name1, *name2;
+        void **addr1, **addr2;
+        int prot1, prot2;
+        int rv1, rv2;
+
+        CHK_PH(plthook_open(&ph_uncached, NULL));
+        CHK_PH(plthook_mem_prot_cache_begin());
+        CHK_PH(plthook_open(&ph_cached, NULL));
+        plthook_mem_prot_cache_end();
+
+        for (;;) {
+            rv1 = plthook_enum_with_prot(ph_uncached, &pos1, &name1, &addr1, &prot1);
+            rv2 = plthook_enum_with_prot(ph_cached, &pos2, &name2, &addr2, &prot2);
+            if (rv1 != rv2) {
+                fprintf(stderr, "Cached vs uncached enum mismatch: rv %d vs %d\n", rv1, rv2);
+                exit(1);
+            }
+            if (rv1 != 0) {
+                break;
+            }
+            if (strcmp(name1, name2) != 0 || addr1 != addr2 || prot1 != prot2) {
+                fprintf(stderr, "Cached vs uncached entry mismatch: (%s, %p, %d) vs (%s, %p, %d)\n",
+                        name1, (void *)addr1, prot1, name2, (void *)addr2, prot2);
+                exit(1);
+            }
+        }
+        plthook_close(ph_cached);
+        plthook_close(ph_uncached);
+    }
+#endif
+}
+
 int main(int argc, char **argv)
 {
     double expected_result = strtod("3.7", NULL);
     enum open_mode open_mode;
+    int use_cache = 0;
 
-    if (argc != 2) {
+    if (argc != 2 && !(argc == 3 && strcmp(argv[2], "--cache") == 0)) {
         show_usage(argv[0]);
         exit(1);
+    }
+    if (argc == 3) {
+        use_cache = 1;
     }
     if (strcmp(argv[1], "open") == 0) {
         open_mode = OPEN_MODE_DEFAULT;
@@ -347,8 +406,15 @@ int main(int argc, char **argv)
     strtod_export_by_ordinal("3.7", NULL);
 #endif
 
+    test_mem_prot_cache();
+    if (use_cache) {
+        CHK_PH(plthook_mem_prot_cache_begin());
+    }
     hook_function_calls_in_executable(open_mode);
     hook_function_calls_in_library(open_mode);
+    if (use_cache) {
+        plthook_mem_prot_cache_end();
+    }
 
     CHK_RESULT(strtod_cdecl, "3.7", expected_result);
 #if defined(_WIN32)
