@@ -261,6 +261,7 @@ struct plthook {
     size_t rela_dyn_cnt;
 #endif
     mem_prot_t mem_prot[NUM_MEM_PROT];
+    int mem_prot_cached;
 };
 
 static char errmsg[512];
@@ -1311,14 +1312,15 @@ int plthook_mem_prot_cache_begin(void)
     }
     while (mem_prot_next(&iter, &entry) == 0) {
         if (len == cap) {
-            size_t new_cap = cap ? cap * 2 : 1024;
+            size_t new_cap;
             mem_prot_t *new_buf;
-            if (new_cap < cap || new_cap > (size_t)-1 / sizeof(mem_prot_t)) {
+            if (cap > ((size_t)-1 / 2) / sizeof(mem_prot_t)) {
                 free(buf);
                 mem_prot_end(&iter);
                 set_errmsg("memory protection cache size overflow");
                 return PLTHOOK_OUT_OF_MEMORY;
             }
+            new_cap = cap ? cap * 2 : 1024;
             new_buf = realloc(buf, new_cap * sizeof(mem_prot_t));
             if (new_buf == NULL) {
                 free(buf);
@@ -1369,6 +1371,7 @@ static int plthook_set_mem_prot(plthook_t *plthook)
 
     if (mem_prot_cache_active) {
         size_t i;
+        plthook->mem_prot_cached = 1;
         for (i = 0; i < mem_prot_cache_len && idx < NUM_MEM_PROT; i++) {
             mem_prot = mem_prot_cache[i];
             if (mem_prot.prot != 0 && mem_prot.start < end && start < mem_prot.end) {
@@ -1523,8 +1526,15 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
             if (name[funcnamelen] == '\0' || name[funcnamelen] == '@') {
                 int prot = plthook_get_mem_prot(plthook, addr);
                 if (prot == 0) {
-                    set_errmsg("Could not get the process memory permission at %p",
-                             ALIGN_ADDR(addr));
+                    if (plthook->mem_prot_cached) {
+                        set_errmsg("Could not get the process memory permission at %p "
+                                   "(address not in memory protection cache; mapping created "
+                                   "after plthook_mem_prot_cache_begin()?)",
+                                   ALIGN_ADDR(addr));
+                    } else {
+                        set_errmsg("Could not get the process memory permission at %p",
+                                   ALIGN_ADDR(addr));
+                    }
                     return PLTHOOK_INTERNAL_ERROR;
                 }
                 if (!(prot & PROT_WRITE)) {

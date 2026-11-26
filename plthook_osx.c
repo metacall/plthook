@@ -169,6 +169,7 @@ typedef struct mem_prot {
 struct plthook {
     unsigned int num_entries;
     mem_prot_t mem_prot[NUM_MEM_PROT];
+    int mem_prot_cached;
     bind_address_t entries[1]; /* This must be the last. */
 };
 
@@ -1009,6 +1010,67 @@ static const char *section_name_from_addr(data_t *d, size_t addr)
 #endif
 #endif
 
+static mem_prot_t *mem_prot_cache = NULL;
+static size_t mem_prot_cache_len = 0;
+static int mem_prot_cache_active = 0;
+
+int plthook_mem_prot_cache_begin(void)
+{
+    mach_port_t task = mach_task_self();
+    vm_address_t vm_addr = 0;
+    vm_size_t vm_size;
+    vm_region_basic_info_data_64_t info;
+    mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT_64;
+    memory_object_name_t object = 0;
+    mem_prot_t *buf = NULL;
+    size_t len = 0;
+    size_t cap = 0;
+
+    if (mem_prot_cache_active) {
+        set_errmsg("memory protection cache is already active");
+        return PLTHOOK_INVALID_ARGUMENT;
+    }
+    while (vm_region_64(task, &vm_addr, &vm_size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &info_count, &object) == KERN_SUCCESS) {
+        mem_prot_t entry = {vm_addr, vm_addr + vm_size, info.protection & (PROT_READ | PROT_WRITE | PROT_EXEC)};
+        if (len == cap) {
+            size_t new_cap;
+            mem_prot_t *new_buf;
+            if (cap > ((size_t)-1 / 2) / sizeof(mem_prot_t)) {
+                free(buf);
+                set_errmsg("memory protection cache size overflow");
+                return PLTHOOK_OUT_OF_MEMORY;
+            }
+            new_cap = cap ? cap * 2 : 1024;
+            new_buf = realloc(buf, new_cap * sizeof(mem_prot_t));
+            if (new_buf == NULL) {
+                free(buf);
+                set_errmsg("failed to allocate memory: %" PRIuPTR " bytes", new_cap * sizeof(mem_prot_t));
+                return PLTHOOK_OUT_OF_MEMORY;
+            }
+            buf = new_buf;
+            cap = new_cap;
+        }
+        buf[len++] = entry;
+        if (vm_addr + vm_size <= vm_addr) {
+            break;
+        }
+        vm_addr += vm_size;
+        info_count = VM_REGION_BASIC_INFO_COUNT_64;
+    }
+    mem_prot_cache = buf;
+    mem_prot_cache_len = len;
+    mem_prot_cache_active = 1;
+    return 0;
+}
+
+void plthook_mem_prot_cache_end(void)
+{
+    free(mem_prot_cache);
+    mem_prot_cache = NULL;
+    mem_prot_cache_len = 0;
+    mem_prot_cache_active = 0;
+}
+
 static int set_mem_prot(plthook_t *plthook)
 {
     unsigned int pos = 0;
@@ -1033,6 +1095,18 @@ static int set_mem_prot(plthook_t *plthook)
         }
     }
     end++;
+
+    if (mem_prot_cache_active) {
+        size_t i;
+        plthook->mem_prot_cached = 1;
+        for (i = 0; i < mem_prot_cache_len && idx < NUM_MEM_PROT; i++) {
+            mem_prot_t mem_prot = mem_prot_cache[i];
+            if (mem_prot.prot != 0 && mem_prot.start < end && start < mem_prot.end) {
+                plthook->mem_prot[idx++] = mem_prot;
+            }
+        }
+        return 0;
+    }
 
     while (vm_region_64(task, &vm_addr, &vm_size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &info_count, &object) == KERN_SUCCESS) {
         mem_prot_t mem_prot = {vm_addr, vm_addr + vm_size, info.protection & (PROT_READ | PROT_WRITE | PROT_EXEC)};
@@ -1143,6 +1217,17 @@ int plthook_replace(plthook_t *plthook, const char *funcname, void *funcaddr, vo
         }
         continue;
 matched:
+        if (entry.prot == 0) {
+            if (plthook->mem_prot_cached) {
+                set_errmsg("Could not get the process memory permission at %p "
+                           "(address not in memory protection cache; mapping created "
+                           "after plthook_mem_prot_cache_begin()?)",
+                           (void *)addr);
+            } else {
+                set_errmsg("Could not get the process memory permission at %p", (void *)addr);
+            }
+            return PLTHOOK_INTERNAL_ERROR;
+        }
         if (oldfunc) {
             *oldfunc = *addr;
         }
@@ -1173,23 +1258,6 @@ void plthook_close(plthook_t *plthook)
         free(plthook);
     }
     return;
-}
-
-static int mem_prot_cache_active = 0;
-
-int plthook_mem_prot_cache_begin(void)
-{
-    if (mem_prot_cache_active) {
-        set_errmsg("memory protection cache is already active");
-        return PLTHOOK_INVALID_ARGUMENT;
-    }
-    mem_prot_cache_active = 1;
-    return 0;
-}
-
-void plthook_mem_prot_cache_end(void)
-{
-    mem_prot_cache_active = 0;
 }
 
 const char *plthook_error(void)

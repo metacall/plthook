@@ -62,19 +62,28 @@ const char *plthook_error(void);
 /* Snapshot process memory protection mappings once and reuse them for every
  * plthook_open*() call until plthook_mem_prot_cache_end() is called.
  *
- * Without caching, each plthook_open*() on ELF platforms re-reads and re-parses
- * all process mappings (e.g. /proc/self/maps on Linux), which is quadratic when
- * opening every loaded object of a process with many shared libraries.
+ * Without caching, each plthook_open*() on ELF platforms and macOS scans all
+ * process memory mappings (e.g. /proc/self/maps on Linux, vm_region_64() on
+ * macOS), which is quadratic when opening every loaded object of a process
+ * with many shared libraries.
  *
- * The caller must ensure that the mappings containing the GOT/PLT entries being
- * inspected or modified do not change while the cache is active, and must
- * serialize plthook calls while it is active (the cache is process-global).
+ * Caller requirements while the cache is active:
+ * - Serialize plthook calls (the cache is process-global).
+ * - Do not dlopen()/dlclose() libraries whose GOT/PLT entries will be hooked:
+ *   opening and replacing symbols in a library loaded after
+ *   plthook_mem_prot_cache_begin() fails with PLTHOOK_INTERNAL_ERROR because
+ *   its mappings are absent from the snapshot.
+ * - Do not change GOT/PLT page protections via mprotect(): stale cached
+ *   permissions can cause plthook_replace() to segfault (if a cached writable
+ *   page was made read-only) or restore stale permissions (if a cached
+ *   read-only page was made writable).
+ *
  * Calling plthook_mem_prot_cache_begin() while already active returns
  * PLTHOOK_INVALID_ARGUMENT. Calling plthook_mem_prot_cache_end() when inactive
  * is a no-op.
  *
- * On platforms that do not scan process memory maps during plthook_open*()
- * (macOS and Windows), these functions only track active state.
+ * On Windows, plthook does not scan process memory maps during
+ * plthook_open*(), so these functions only track active state.
  */
 int plthook_mem_prot_cache_begin(void);
 void plthook_mem_prot_cache_end(void);
