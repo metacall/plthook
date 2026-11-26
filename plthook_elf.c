@@ -1286,6 +1286,66 @@ static int plthook_open_real(plthook_t **plthook_out, struct link_map *lmap)
     return 0;
 }
 
+/* Snapshot of process memory mappings installed by
+ * plthook_mem_prot_cache_begin(). While active, plthook_set_mem_prot() scans
+ * this array instead of re-reading process mappings for every plthook_open*().
+ */
+static mem_prot_t *mem_prot_cache = NULL;
+static size_t mem_prot_cache_len = 0;
+static int mem_prot_cache_active = 0;
+
+int plthook_mem_prot_cache_begin(void)
+{
+    mem_prot_iter_t iter;
+    mem_prot_t entry;
+    mem_prot_t *buf = NULL;
+    size_t len = 0;
+    size_t cap = 0;
+
+    if (mem_prot_cache_active) {
+        set_errmsg("memory protection cache is already active");
+        return PLTHOOK_INVALID_ARGUMENT;
+    }
+    if (mem_prot_begin(&iter) != 0) {
+        return PLTHOOK_INTERNAL_ERROR;
+    }
+    while (mem_prot_next(&iter, &entry) == 0) {
+        if (len == cap) {
+            size_t new_cap = cap ? cap * 2 : 1024;
+            mem_prot_t *new_buf;
+            if (new_cap < cap || new_cap > (size_t)-1 / sizeof(mem_prot_t)) {
+                free(buf);
+                mem_prot_end(&iter);
+                set_errmsg("memory protection cache size overflow");
+                return PLTHOOK_OUT_OF_MEMORY;
+            }
+            new_buf = realloc(buf, new_cap * sizeof(mem_prot_t));
+            if (new_buf == NULL) {
+                free(buf);
+                mem_prot_end(&iter);
+                set_errmsg("failed to allocate memory: %" SIZE_T_FMT " bytes", new_cap * sizeof(mem_prot_t));
+                return PLTHOOK_OUT_OF_MEMORY;
+            }
+            buf = new_buf;
+            cap = new_cap;
+        }
+        buf[len++] = entry;
+    }
+    mem_prot_end(&iter);
+    mem_prot_cache = buf;
+    mem_prot_cache_len = len;
+    mem_prot_cache_active = 1;
+    return 0;
+}
+
+void plthook_mem_prot_cache_end(void)
+{
+    free(mem_prot_cache);
+    mem_prot_cache = NULL;
+    mem_prot_cache_len = 0;
+    mem_prot_cache_active = 0;
+}
+
 static int plthook_set_mem_prot(plthook_t *plthook)
 {
     unsigned int pos = 0;
@@ -1306,6 +1366,17 @@ static int plthook_set_mem_prot(plthook_t *plthook)
         }
     }
     end++;
+
+    if (mem_prot_cache_active) {
+        size_t i;
+        for (i = 0; i < mem_prot_cache_len && idx < NUM_MEM_PROT; i++) {
+            mem_prot = mem_prot_cache[i];
+            if (mem_prot.prot != 0 && mem_prot.start < end && start < mem_prot.end) {
+                plthook->mem_prot[idx++] = mem_prot;
+            }
+        }
+        return 0;
+    }
 
     if (mem_prot_begin(&iter) != 0) {
         return PLTHOOK_INTERNAL_ERROR;

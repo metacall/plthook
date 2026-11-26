@@ -108,8 +108,11 @@ testprog$(EXEEXT): testprog.c testlazybinding.c ../$(PLTHOOK_C) libtest.h
 
 run_tests: clean libtest.$(SOEXT) testprog$(EXEEXT)
 	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open
+	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open --cache
 	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_handle
+	$(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_handle --cache
 	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env $(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_address
+	test "$(SKIP_OPEN_BY_ADDRESS_TEST)" || env $(LIBPATH_ENV) $(KICK_CMD) ./testprog$(EXEEXT) open_by_address --cache
 
 check: $(TESTS)
 

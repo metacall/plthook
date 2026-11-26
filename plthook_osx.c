@@ -1175,6 +1175,23 @@ void plthook_close(plthook_t *plthook)
     return;
 }
 
+static int mem_prot_cache_active = 0;
+
+int plthook_mem_prot_cache_begin(void)
+{
+    if (mem_prot_cache_active) {
+        set_errmsg("memory protection cache is already active");
+        return PLTHOOK_INVALID_ARGUMENT;
+    }
+    mem_prot_cache_active = 1;
+    return 0;
+}
+
+void plthook_mem_prot_cache_end(void)
+{
+    mem_prot_cache_active = 0;
+}
+
 const char *plthook_error(void)
 {
     return errmsg;

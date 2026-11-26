@@ -318,14 +318,35 @@ static void hook_function_calls_in_library(enum open_mode open_mode)
     plthook_close(plthook);
 }
 
+static void test_mem_prot_cache(void)
+{
+    int rv;
+
+    /* Calling end when inactive must be a safe no-op. */
+    plthook_mem_prot_cache_end();
+
+    CHK_PH(plthook_mem_prot_cache_begin());
+    rv = plthook_mem_prot_cache_begin();
+    if (rv != PLTHOOK_INVALID_ARGUMENT) {
+        fprintf(stderr, "Expected PLTHOOK_INVALID_ARGUMENT on nested begin, got %d\n", rv);
+        exit(1);
+    }
+    plthook_mem_prot_cache_end();
+    plthook_mem_prot_cache_end();
+}
+
 int main(int argc, char **argv)
 {
     double expected_result = strtod("3.7", NULL);
     enum open_mode open_mode;
+    int use_cache = 0;
 
-    if (argc != 2) {
+    if (argc != 2 && !(argc == 3 && strcmp(argv[2], "--cache") == 0)) {
         show_usage(argv[0]);
         exit(1);
+    }
+    if (argc == 3) {
+        use_cache = 1;
     }
     if (strcmp(argv[1], "open") == 0) {
         open_mode = OPEN_MODE_DEFAULT;
@@ -347,8 +368,15 @@ int main(int argc, char **argv)
     strtod_export_by_ordinal("3.7", NULL);
 #endif
 
+    test_mem_prot_cache();
+    if (use_cache) {
+        CHK_PH(plthook_mem_prot_cache_begin());
+    }
     hook_function_calls_in_executable(open_mode);
     hook_function_calls_in_library(open_mode);
+    if (use_cache) {
+        plthook_mem_prot_cache_end();
+    }
 
     CHK_RESULT(strtod_cdecl, "3.7", expected_result);
 #if defined(_WIN32)
